@@ -9,11 +9,14 @@ import { BrandProfile } from "./components/BrandProfile";
 import CampaignIntentCard from "./components/CampaignIntentCard";
 import EmailPlanCard from "./components/EmailPlanCard";
 import EmailSpecViewer from "./components/EmailSpecViewer";
+import EmailPreview from "./components/EmailPreview";
+import type { ValidationIssue } from "@/lib/validators/emailSpec";
 
 type ViewState = "form" | "loading" | "success" | "error";
 type IntentState = "idle" | "loading" | "success" | "error";
 type PlanState = "idle" | "loading" | "success" | "error";
 type SpecState = "idle" | "loading" | "success" | "error";
+type RenderState = "idle" | "loading" | "success" | "error";
 
 interface ErrorResponse {
   code: string;
@@ -43,6 +46,18 @@ export default function Home() {
   const [specState, setSpecState] = useState<SpecState>("idle");
   const [emailSpec, setEmailSpec] = useState<EmailSpec | null>(null);
   const [specError, setSpecError] = useState<ErrorResponse | null>(null);
+
+  // Email render state
+  const [renderState, setRenderState] = useState<RenderState>("idle");
+  const [renderedHtml, setRenderedHtml] = useState<string>("");
+  const [renderedMjml, setRenderedMjml] = useState<string>("");
+  const [renderWarnings, setRenderWarnings] = useState<ValidationIssue[]>([]);
+  const [mjmlErrors, setMjmlErrors] = useState<Array<{ message: string }>>([]);
+  const [renderError, setRenderError] = useState<ErrorResponse | null>(null);
+
+  // Quick paste state
+  const [quickPasteJson, setQuickPasteJson] = useState<string>("");
+  const [quickPasteValid, setQuickPasteValid] = useState<boolean>(false);
 
   const handleAnalyze = async () => {
     if (!brandUrl.trim()) {
@@ -217,16 +232,44 @@ export default function Home() {
     setSpecError(null);
 
     try {
+      // Debug: Log the request payload
+      console.log("Generating email spec with:", {
+        brandContext: brandContext ? "✓" : "✗",
+        intent: campaignIntent ? "✓" : "✗",
+        plan: emailPlan ? "✓" : "✗",
+      });
+
+      const payload = {
+        brandContext,
+        intent: campaignIntent,
+        plan: emailPlan,
+      };
+
+      // Log a sample of the actual data for debugging
+      console.log("Payload sample:", {
+        brandContext: brandContext ? {
+          brandName: brandContext.brand.name,
+          hasColors: !!brandContext.brand.colors,
+          hasFonts: !!brandContext.brand.fonts,
+          catalogCount: brandContext.catalog?.length || 0,
+        } : null,
+        intent: campaignIntent ? {
+          type: campaignIntent.type,
+          hasGoal: !!campaignIntent.goal,
+        } : null,
+        plan: emailPlan ? {
+          sectionsCount: emailPlan.sections?.length || 0,
+          hasSubject: !!emailPlan.subject,
+          hasPreheader: !!emailPlan.preheader,
+        } : null,
+      });
+
       const response = await fetch("/api/email/spec", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          brandContext,
-          intent: campaignIntent,
-          plan: emailPlan,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -252,10 +295,62 @@ export default function Home() {
     setEmailSpec(null);
     setSpecError(null);
     setSpecState("idle");
+    setRenderState("idle");
+    setRenderedHtml("");
+    setRenderedMjml("");
+    setRenderWarnings([]);
+    setMjmlErrors([]);
+    setRenderError(null);
+  };
+
+  const handleRenderPreview = async () => {
+    if (!emailSpec) {
+      setRenderError({
+        code: "INVALID_INPUT",
+        message: "Email spec is required",
+      });
+      setRenderState("error");
+      return;
+    }
+
+    setRenderState("loading");
+    setRenderError(null);
+
+    try {
+      const response = await fetch("/api/email/render", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          spec: emailSpec,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setRenderError(data.error);
+        setRenderState("error");
+        return;
+      }
+
+      setRenderedHtml(data.html);
+      setRenderedMjml(data.mjml);
+      setRenderWarnings(data.warnings || []);
+      setMjmlErrors(data.mjmlErrors || []);
+      setRenderState("success");
+    } catch {
+      setRenderError({
+        code: "INTERNAL",
+        message: "Failed to connect to the server. Please try again.",
+      });
+      setRenderState("error");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100">
       <div className="mx-auto max-w-4xl px-4 py-12">
         {/* Header */}
         <header className="mb-12 text-center">
@@ -266,6 +361,80 @@ export default function Home() {
             Extract brand context from any e-commerce website
           </p>
         </header>
+
+        {/* Quick Render Section */}
+        <div className="mb-8 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 p-6">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">
+            ⚡ Quick Render: Paste EmailSpec JSON
+          </h2>
+          <div className="space-y-4">
+            <div className="relative">
+              <textarea
+                value={quickPasteJson}
+                placeholder='Paste your EmailSpec JSON here... e.g., { "meta": { ... }, "theme": { ... }, "sections": [ ... ] }'
+                className={`w-full rounded-md border px-4 py-2.5 font-mono text-sm ${
+                  quickPasteValid && quickPasteJson
+                    ? "border-green-500 bg-green-50"
+                    : "border-slate-300 bg-white"
+                }`}
+                rows={6}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setQuickPasteJson(value);
+                  
+                  try {
+                    const parsed = JSON.parse(value);
+                    setEmailSpec(parsed);
+                    setQuickPasteValid(true);
+                    setSpecState("success");
+                  } catch {
+                    setEmailSpec(null);
+                    setQuickPasteValid(false);
+                  }
+                }}
+              />
+              {quickPasteValid && quickPasteJson && (
+                <div className="absolute right-3 top-3 text-green-600">
+                  ✓ Valid JSON
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleRenderPreview}
+              disabled={!emailSpec || renderState === "loading"}
+              className="w-full rounded-md bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+            >
+              {renderState === "loading" ? "Rendering..." : "Render Email Preview"}
+            </button>
+            {!quickPasteValid && quickPasteJson && (
+              <p className="text-sm text-red-600">
+                Invalid JSON. Please check your input.
+              </p>
+            )}
+            {renderState === "error" && renderError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <h3 className="text-sm font-medium text-red-800">
+                  {renderError.code}
+                </h3>
+                <p className="mt-1 text-sm text-red-700">
+                  {renderError.message}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Render Preview */}
+        {renderState === "success" && renderedHtml && (
+          <div className="mb-8">
+            <EmailPreview
+              html={renderedHtml}
+              mjml={renderedMjml}
+              warnings={renderWarnings}
+              mjmlErrors={mjmlErrors}
+            />
+          </div>
+        )}
 
         {/* Form Card */}
         {(viewState === "form" || viewState === "error") && (
@@ -301,7 +470,7 @@ export default function Home() {
               {viewState === "error" && error && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                   <div className="flex gap-3">
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <svg
                         className="h-5 w-5 text-red-600"
                         fill="currentColor"
@@ -410,7 +579,7 @@ export default function Home() {
                   {intentState === "error" && intentError && (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                       <div className="flex gap-3">
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                           <svg
                             className="h-5 w-5 text-red-600"
                             fill="currentColor"
@@ -485,7 +654,7 @@ export default function Home() {
                       {planState === "error" && planError && (
                         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                           <div className="flex gap-3">
-                            <div className="flex-shrink-0">
+                            <div className="shrink-0">
                               <svg
                                 className="h-5 w-5 text-red-600"
                                 fill="currentColor"
@@ -555,7 +724,7 @@ export default function Home() {
                           {specState === "error" && specError && (
                             <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                               <div className="flex gap-3">
-                                <div className="flex-shrink-0">
+                                <div className="shrink-0">
                                   <svg
                                     className="h-5 w-5 text-red-600"
                                     fill="currentColor"
@@ -575,6 +744,17 @@ export default function Home() {
                                   <p className="mt-1 text-sm text-red-700">
                                     {specError.message}
                                   </p>
+                                  {/* Show validation details if available */}
+                                  {(specError as any).details && (
+                                    <details className="mt-2">
+                                      <summary className="cursor-pointer text-xs text-red-600 hover:text-red-800">
+                                        View validation details
+                                      </summary>
+                                      <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-x-auto">
+                                        {JSON.stringify((specError as any).details, null, 2)}
+                                      </pre>
+                                    </details>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -608,10 +788,86 @@ export default function Home() {
 
                     {/* Email Spec Viewer */}
                     {specState === "success" && emailSpec && (
-                      <EmailSpecViewer
-                        spec={emailSpec}
-                        onNewSpec={handleNewSpec}
-                      />
+                      <div className="space-y-6">
+                        <EmailSpecViewer spec={emailSpec} />
+
+                        {/* Render Preview Section */}
+                        {renderState !== "success" && (
+                          <div className="rounded-lg bg-white p-8 shadow-md">
+                            <h2 className="text-xl font-bold text-slate-900 mb-4">
+                              Render Email Preview
+                            </h2>
+                            <p className="text-sm text-slate-600 mb-4">
+                              Convert the EmailSpec JSON to MJML and responsive
+                              HTML for preview and export
+                            </p>
+
+                            <div className="space-y-4">
+                              {/* Render Error State */}
+                              {renderState === "error" && renderError && (
+                                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                                  <div className="flex gap-3">
+                                    <div className="shrink-0">
+                                      <svg
+                                        className="h-5 w-5 text-red-600"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                    </div>
+                                    <div className="flex-1">
+                                      <h3 className="text-sm font-medium text-red-800">
+                                        {renderError.code}
+                                      </h3>
+                                      <p className="mt-1 text-sm text-red-700">
+                                        {renderError.message}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Render Loading State */}
+                              {renderState === "loading" && (
+                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-5 w-5 animate-spin rounded-full border-3 border-blue-300 border-t-blue-600" />
+                                    <p className="text-sm font-medium text-blue-800">
+                                      Rendering email preview...
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Render Preview Button */}
+                              <button
+                                onClick={handleRenderPreview}
+                                disabled={renderState === "loading"}
+                                className="w-full rounded-md bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                              >
+                                {renderState === "loading"
+                                  ? "Rendering..."
+                                  : "Render Preview"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Email Preview */}
+                        {renderState === "success" && renderedHtml && (
+                          <EmailPreview
+                            html={renderedHtml}
+                            mjml={renderedMjml}
+                            warnings={renderWarnings}
+                            mjmlErrors={mjmlErrors}
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -623,13 +879,15 @@ export default function Home() {
         {/* Info Footer */}
         <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-6">
           <h2 className="mb-2 text-sm font-semibold text-slate-900">
-            PR6 - EmailSpec Generator
+            PR8 - EmailSpec Renderer (JSON → MJML → HTML)
           </h2>
           <p className="text-sm text-slate-600">
             This interface extracts brand context from e-commerce websites,
             parses campaign intent from natural language prompts, generates
-            structured email plans, and creates canonical EmailSpec JSON. Future
-            PRs will add validation and MJML rendering.
+            structured email plans, creates canonical EmailSpec JSON, validates
+            and repairs specs, and renders them to responsive email HTML via
+            MJML. Preview the email in an iframe and export HTML/MJML for use in
+            your email service provider.
           </p>
         </div>
       </div>

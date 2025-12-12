@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { BrandContextSchema } from "@/lib/schemas/brand";
-import { CampaignIntentSchema } from "@/lib/schemas/campaign";
-import { EmailPlanSchema } from "@/lib/schemas/plan";
+import { CampaignIntentSchema } from "@/lib/llm/schemas/campaignIntent";
+import { EmailPlanSchema } from "@/lib/llm/schemas/emailPlan";
 import { generateEmailSpec } from "@/lib/llm/generateEmailSpec";
 import { LLMError } from "@/lib/llm/errors";
 import OpenAI from "openai";
@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Generate EmailSpec with multi-attempt repair loop
+      // (generateEmailSpec handles schema normalization internally)
       const { spec, warnings } = await generateEmailSpec({
         brandContext,
         intent,
