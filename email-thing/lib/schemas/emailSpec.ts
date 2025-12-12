@@ -138,20 +138,101 @@ export type Catalog = z.infer<typeof CatalogSchema>;
  * EmailSpec - The canonical email specification
  * This is the most important contract in the system
  */
-export const EmailSpecSchema = z.object({
-  meta: EmailMetaSchema,
-  theme: ThemeSchema.default({
-    containerWidth: 600,
-    backgroundColor: "#FFFFFF",
-    surfaceColor: "#F5F5F5",
-    textColor: "#111111",
-    mutedTextColor: "#666666",
-    primaryColor: "#111111",
-    font: { heading: "Arial", body: "Arial" },
-    button: { radius: 8, style: "solid" as const },
-  }),
-  sections: z.array(SectionSchema).min(1, "At least one section is required"),
-  catalog: CatalogSchema.optional(),
-});
+export const EmailSpecSchema = z
+  .object({
+    meta: EmailMetaSchema,
+    theme: ThemeSchema.default({
+      containerWidth: 600,
+      backgroundColor: "#FFFFFF",
+      surfaceColor: "#F5F5F5",
+      textColor: "#111111",
+      mutedTextColor: "#666666",
+      primaryColor: "#111111",
+      font: { heading: "Arial", body: "Arial" },
+      button: { radius: 8, style: "solid" as const },
+    }),
+    sections: z
+      .array(SectionSchema)
+      .min(3, "Must have at least 3 sections")
+      .max(10, "Maximum 10 sections allowed"),
+    catalog: CatalogSchema.optional(),
+  })
+  .superRefine((data, ctx) => {
+    // Check for required header and footer sections
+    const sectionTypes = data.sections.map((s) => s.type);
+    const hasHeader = sectionTypes.includes("header");
+    const hasFooter = sectionTypes.includes("footer");
+
+    if (!hasHeader) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Must include at least one 'header' section",
+        path: ["sections"],
+      });
+    }
+
+    if (!hasFooter) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Must include at least one 'footer' section",
+        path: ["sections"],
+      });
+    }
+
+    // Check for at least one button block (CTA requirement)
+    let hasButton = false;
+    for (const section of data.sections) {
+      for (const block of section.blocks) {
+        if (block.type === "button") {
+          hasButton = true;
+          break;
+        }
+      }
+      if (hasButton) break;
+    }
+
+    if (!hasButton) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Must include at least one 'button' block for CTA",
+        path: ["sections"],
+      });
+    }
+
+    // Get catalog product IDs
+    const catalogProductIds = new Set(
+      data.catalog?.items?.map((p) => p.id) || []
+    );
+
+    // Validate productCard blocks reference existing catalog items
+    data.sections.forEach((section, sectionIdx) => {
+      section.blocks.forEach((block, blockIdx) => {
+        if (block.type === "productCard") {
+          if (!catalogProductIds.has(block.productRef)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Product reference "${block.productRef}" not found in catalog`,
+              path: ["sections", sectionIdx, "blocks", blockIdx, "productRef"],
+            });
+          }
+        }
+      });
+    });
+
+    // If catalog is empty, ensure no productCard blocks
+    if (catalogProductIds.size === 0) {
+      data.sections.forEach((section, sectionIdx) => {
+        section.blocks.forEach((block, blockIdx) => {
+          if (block.type === "productCard") {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Cannot have productCard blocks when catalog is empty",
+              path: ["sections", sectionIdx, "blocks", blockIdx],
+            });
+          }
+        });
+      });
+    }
+  });
 
 export type EmailSpec = z.infer<typeof EmailSpecSchema>;

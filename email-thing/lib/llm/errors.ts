@@ -2,6 +2,7 @@
  * LLM error codes
  */
 export type LLMErrorCode =
+  | "INVALID_INPUT"
   | "INVALID_PROMPT"
   | "LLM_CONFIG_MISSING"
   | "LLM_FAILED"
@@ -37,9 +38,10 @@ export function createLLMError(
  * Error messages for each code
  */
 export const LLM_ERROR_MESSAGES: Record<LLMErrorCode, string> = {
+  INVALID_INPUT: "Invalid input provided",
   INVALID_PROMPT: "The prompt is empty or invalid",
   LLM_CONFIG_MISSING: "LLM API configuration is missing",
-  LLM_FAILED: "Failed to generate campaign intent",
+  LLM_FAILED: "Failed to generate response from LLM",
   LLM_TIMEOUT: "LLM request timed out",
   LLM_OUTPUT_INVALID: "LLM output could not be validated",
 };

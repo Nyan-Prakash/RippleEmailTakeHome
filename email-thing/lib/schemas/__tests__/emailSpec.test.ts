@@ -26,6 +26,18 @@ describe("EmailSpec Schema", () => {
           type: "header",
           blocks: [],
         },
+        {
+          id: "test-2",
+          type: "hero",
+          blocks: [
+            { type: "button", text: "Click", href: "https://example.com" },
+          ],
+        },
+        {
+          id: "test-3",
+          type: "footer",
+          blocks: [],
+        },
       ],
     };
 
@@ -79,7 +91,17 @@ describe("EmailSpec Schema", () => {
           style: "solid",
         },
       },
-      sections: [{ id: "1", type: "header", blocks: [] }],
+      sections: [
+        { id: "1", type: "header", blocks: [] },
+        {
+          id: "2",
+          type: "hero",
+          blocks: [
+            { type: "button", text: "Click", href: "https://example.com" },
+          ],
+        },
+        { id: "3", type: "footer", blocks: [] },
+      ],
     };
 
     const result = EmailSpecSchema.safeParse(validRadius);
@@ -121,6 +143,18 @@ describe("EmailSpec Schema", () => {
             paddingY: 24,
           },
         },
+        {
+          id: "2",
+          type: "hero",
+          blocks: [
+            { type: "button", text: "Click", href: "https://example.com" },
+          ],
+        },
+        {
+          id: "3",
+          type: "footer",
+          blocks: [],
+        },
       ],
     };
 
@@ -152,10 +186,263 @@ describe("EmailSpec Schema", () => {
         textColor: "#000000",
         primaryColor: "#FF6B35",
       },
-      sections: [{ id: "1", type: "header", blocks: [] }],
+      sections: [
+        { id: "1", type: "header", blocks: [] },
+        {
+          id: "2",
+          type: "hero",
+          blocks: [
+            { type: "button", text: "Click", href: "https://example.com" },
+          ],
+        },
+        { id: "3", type: "footer", blocks: [] },
+      ],
     };
 
     const result = EmailSpecSchema.safeParse(validColors);
     expect(result.success).toBe(true);
+  });
+
+  it("requires header section", () => {
+    const noHeader = {
+      meta: {
+        subject: "Test Subject",
+        preheader: "Test preheader text",
+      },
+      sections: [
+        {
+          id: "1",
+          type: "hero",
+          blocks: [
+            { type: "button", text: "Click", href: "https://example.com" },
+          ],
+        },
+        { id: "2", type: "footer", blocks: [] },
+        { id: "3", type: "feature", blocks: [] },
+      ],
+    };
+
+    const result = EmailSpecSchema.safeParse(noHeader);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errorMessages = result.error.issues.map((e) => e.message);
+      expect(errorMessages).toContain(
+        "Must include at least one 'header' section"
+      );
+    }
+  });
+
+  it("requires footer section", () => {
+    const noFooter = {
+      meta: {
+        subject: "Test Subject",
+        preheader: "Test preheader text",
+      },
+      sections: [
+        { id: "1", type: "header", blocks: [] },
+        {
+          id: "2",
+          type: "hero",
+          blocks: [
+            { type: "button", text: "Click", href: "https://example.com" },
+          ],
+        },
+        { id: "3", type: "feature", blocks: [] },
+      ],
+    };
+
+    const result = EmailSpecSchema.safeParse(noFooter);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errorMessages = result.error.issues.map((e) => e.message);
+      expect(errorMessages).toContain(
+        "Must include at least one 'footer' section"
+      );
+    }
+  });
+
+  it("requires at least one button block for CTA", () => {
+    const noButton = {
+      meta: {
+        subject: "Test Subject",
+        preheader: "Test preheader text",
+      },
+      sections: [
+        {
+          id: "1",
+          type: "header",
+          blocks: [{ type: "logo", src: "logo.png" }],
+        },
+        {
+          id: "2",
+          type: "hero",
+          blocks: [{ type: "heading", text: "Hello", level: 1 }],
+        },
+        { id: "3", type: "footer", blocks: [] },
+      ],
+    };
+
+    const result = EmailSpecSchema.safeParse(noButton);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errorMessages = result.error.issues.map((e) => e.message);
+      expect(errorMessages).toContain(
+        "Must include at least one 'button' block for CTA"
+      );
+    }
+  });
+
+  it("validates productCard references existing catalog items", () => {
+    const invalidProductRef = {
+      meta: {
+        subject: "Test Subject",
+        preheader: "Test preheader text",
+      },
+      sections: [
+        { id: "1", type: "header", blocks: [] },
+        {
+          id: "2",
+          type: "productGrid",
+          blocks: [
+            { type: "productCard", productRef: "nonexistent-product" },
+            { type: "button", text: "Shop", href: "https://example.com" },
+          ],
+        },
+        { id: "3", type: "footer", blocks: [] },
+      ],
+      catalog: {
+        items: [
+          {
+            id: "product-1",
+            title: "Product 1",
+            price: "$10",
+            image: "https://example.com/p1.jpg",
+            url: "https://example.com/p1",
+          },
+        ],
+      },
+    };
+
+    const result = EmailSpecSchema.safeParse(invalidProductRef);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errorMessages = result.error.issues.map((e) => e.message);
+      expect(errorMessages).toContain(
+        'Product reference "nonexistent-product" not found in catalog'
+      );
+    }
+  });
+
+  it("rejects productCard blocks when catalog is empty", () => {
+    const productCardWithoutCatalog = {
+      meta: {
+        subject: "Test Subject",
+        preheader: "Test preheader text",
+      },
+      sections: [
+        { id: "1", type: "header", blocks: [] },
+        {
+          id: "2",
+          type: "hero",
+          blocks: [
+            { type: "productCard", productRef: "product-1" },
+            { type: "button", text: "Shop", href: "https://example.com" },
+          ],
+        },
+        { id: "3", type: "footer", blocks: [] },
+      ],
+    };
+
+    const result = EmailSpecSchema.safeParse(productCardWithoutCatalog);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = result.error.format();
+      expect(errors.sections?.[1]?.blocks?.[0]?._errors).toContain(
+        "Cannot have productCard blocks when catalog is empty"
+      );
+    }
+  });
+
+  it("validates text blocks do not contain HTML", () => {
+    const withHtml = {
+      meta: {
+        subject: "Test Subject",
+        preheader: "Test preheader text",
+      },
+      sections: [
+        { id: "1", type: "header", blocks: [] },
+        {
+          id: "2",
+          type: "hero",
+          blocks: [
+            { type: "heading", text: "Hello <b>World</b>", level: 1 },
+            { type: "button", text: "Click", href: "https://example.com" },
+          ],
+        },
+        { id: "3", type: "footer", blocks: [] },
+      ],
+    };
+
+    const result = EmailSpecSchema.safeParse(withHtml);
+    // The block schema should sanitize HTML by stripping < and >
+    if (result.success) {
+      expect(result.data.sections[1].blocks[0]).toMatchObject({
+        type: "heading",
+        text: "Hello bWorld/b", // HTML tags stripped
+      });
+    }
+  });
+
+  it("validates minimum 3 sections", () => {
+    const tooFewSections = {
+      meta: {
+        subject: "Test Subject",
+        preheader: "Test preheader text",
+      },
+      sections: [
+        {
+          id: "1",
+          type: "header",
+          blocks: [
+            { type: "button", text: "Click", href: "https://example.com" },
+          ],
+        },
+        { id: "2", type: "footer", blocks: [] },
+      ],
+    };
+
+    const result = EmailSpecSchema.safeParse(tooFewSections);
+    expect(result.success).toBe(false);
+  });
+
+  it("validates maximum 10 sections", () => {
+    const tooManySections = {
+      meta: {
+        subject: "Test Subject",
+        preheader: "Test preheader text",
+      },
+      sections: [
+        {
+          id: "1",
+          type: "header",
+          blocks: [
+            { type: "button", text: "Click", href: "https://example.com" },
+          ],
+        },
+        { id: "2", type: "hero", blocks: [] },
+        { id: "3", type: "feature", blocks: [] },
+        { id: "4", type: "feature", blocks: [] },
+        { id: "5", type: "feature", blocks: [] },
+        { id: "6", type: "feature", blocks: [] },
+        { id: "7", type: "feature", blocks: [] },
+        { id: "8", type: "feature", blocks: [] },
+        { id: "9", type: "feature", blocks: [] },
+        { id: "10", type: "feature", blocks: [] },
+        { id: "11", type: "footer", blocks: [] },
+      ],
+    };
+
+    const result = EmailSpecSchema.safeParse(tooManySections);
+    expect(result.success).toBe(false);
   });
 });
