@@ -1,374 +1,212 @@
-import type { EmailSpec } from "../../lib/schemas/emailSpec";
+"use client";
+
+import type { EmailSpec } from "@/lib/schemas/emailSpec";
+import type { ValidationIssue } from "@/lib/validators/emailSpec";
 
 interface EmailSpecViewerProps {
   spec: EmailSpec;
-  onNewSpec?: () => void;
+  warnings?: ValidationIssue[];
 }
 
-export default function EmailSpecViewer({
-  spec,
-  onNewSpec,
-}: EmailSpecViewerProps) {
+export default function EmailSpecViewer({ spec, warnings = [] }: EmailSpecViewerProps) {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Email Spec</h2>
-        {onNewSpec && (
-          <button
-            onClick={onNewSpec}
-            className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            New Spec
-          </button>
-        )}
-      </div>
-
-      {/* Meta Information */}
-      <div className="space-y-3 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-md">
-        <h3 className="text-lg font-semibold text-gray-800">Email Metadata</h3>
-        <div>
-          <span className="text-sm font-medium text-gray-600">Subject</span>
-          <p className="text-lg font-medium mt-1">{spec.meta.subject}</p>
-        </div>
-        <div>
-          <span className="text-sm font-medium text-gray-600">Preheader</span>
-          <p className="text-base mt-1 text-gray-700">{spec.meta.preheader}</p>
-        </div>
-      </div>
-
-      {/* Theme Tokens */}
-      <div className="space-y-3 p-4 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-md">
-        <h3 className="text-lg font-semibold text-gray-800">Theme</h3>
-
-        {/* Colors */}
-        <div>
-          <span className="text-sm font-medium text-gray-600">Colors</span>
-          <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded border-2 border-gray-300"
-                style={{ backgroundColor: spec.theme.backgroundColor }}
-              />
-              <div>
-                <p className="text-xs text-gray-500">Background</p>
-                <p className="text-sm font-mono">
-                  {spec.theme.backgroundColor}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded border-2 border-gray-300"
-                style={{ backgroundColor: spec.theme.primaryColor }}
-              />
-              <div>
-                <p className="text-xs text-gray-500">Primary</p>
-                <p className="text-sm font-mono">{spec.theme.primaryColor}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded border-2 border-gray-300"
-                style={{ backgroundColor: spec.theme.textColor }}
-              />
-              <div>
-                <p className="text-xs text-gray-500">Text</p>
-                <p className="text-sm font-mono">{spec.theme.textColor}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded border-2 border-gray-300"
-                style={{ backgroundColor: spec.theme.surfaceColor }}
-              />
-              <div>
-                <p className="text-xs text-gray-500">Surface</p>
-                <p className="text-sm font-mono">{spec.theme.surfaceColor}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded border-2 border-gray-300"
-                style={{ backgroundColor: spec.theme.mutedTextColor }}
-              />
-              <div>
-                <p className="text-xs text-gray-500">Muted Text</p>
-                <p className="text-sm font-mono">{spec.theme.mutedTextColor}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Typography */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <span className="text-sm font-medium text-gray-600">
-              Heading Font
+    <div className="space-y-6">
+      {/* Warning Banner */}
+      {warnings.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Validation Warnings
+            </h3>
+            <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-0.5 rounded">
+              {warnings.length} {warnings.length === 1 ? "warning" : "warnings"}
             </span>
-            <p className="text-base mt-1 font-mono text-gray-800">
-              {spec.theme.font.heading}
-            </p>
           </div>
-          <div>
-            <span className="text-sm font-medium text-gray-600">Body Font</span>
-            <p className="text-base mt-1 font-mono text-gray-800">
-              {spec.theme.font.body}
-            </p>
-          </div>
-        </div>
-
-        {/* Button Style */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <span className="text-sm font-medium text-gray-600">
-              Button Style
-            </span>
-            <p className="text-base mt-1 capitalize px-3 py-1 inline-block bg-purple-100 text-purple-800 rounded-full">
-              {spec.theme.button.style}
-            </p>
-          </div>
-          <div>
-            <span className="text-sm font-medium text-gray-600">
-              Button Radius
-            </span>
-            <p className="text-base mt-1 px-3 py-1 inline-block bg-purple-100 text-purple-800 rounded-full">
-              {spec.theme.button.radius}px
-            </p>
-          </div>
-        </div>
-
-        {/* Container Width */}
-        <div>
-          <span className="text-sm font-medium text-gray-600">
-            Container Width
-          </span>
-          <p className="text-base mt-1 px-3 py-1 inline-block bg-purple-100 text-purple-800 rounded-full">
-            {spec.theme.containerWidth}px
-          </p>
-        </div>
-      </div>
-
-      {/* Catalog */}
-      {spec.catalog && spec.catalog.items.length > 0 && (
-        <div className="space-y-3 p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-md">
-          <h3 className="text-lg font-semibold text-gray-800">
-            Product Catalog ({spec.catalog.items.length})
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {spec.catalog.items.map((product) => (
-              <div
-                key={product.id}
-                className="p-3 bg-white border border-green-200 rounded-md"
-              >
-                <div className="flex gap-3">
-                  {product.image && (
-                    <img
-                      src={product.image}
-                      alt={product.title}
-                      className="w-16 h-16 object-cover rounded"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-mono text-gray-500">
-                      {product.id}
-                    </p>
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {product.title}
-                    </p>
-                    <p className="text-sm font-semibold text-green-700">
-                      {product.price}
-                    </p>
-                    {product.url && (
-                      <a
-                        href={product.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        View →
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Sections */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">
-          Sections ({spec.sections.length})
-        </h3>
-        <div className="space-y-3">
-          {spec.sections.map((section, idx) => (
-            <details
-              key={section.id}
-              className="p-4 bg-gray-50 border border-gray-200 rounded-md"
-              open={idx === 0}
-            >
-              <summary className="cursor-pointer font-medium text-gray-900 hover:text-blue-600">
-                <div className="inline-flex items-center gap-2">
-                  <span className="text-xs font-mono text-gray-500">
-                    {idx + 1}.
-                  </span>
-                  <span className="text-sm font-medium capitalize px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
-                    {section.type}
-                  </span>
-                  <span className="text-xs font-mono text-gray-500">
-                    ({section.id})
-                  </span>
-                </div>
-              </summary>
-
-              <div className="mt-4 space-y-3">
-                {/* Layout */}
-                {section.layout && (
-                  <div>
-                    <span className="text-xs font-medium text-gray-600">
-                      Layout
+          <details className="mt-2">
+            <summary className="text-sm text-amber-700 cursor-pointer hover:text-amber-900">
+              View details
+            </summary>
+            <ul className="mt-2 space-y-2">
+              {warnings.map((warning, idx) => (
+                <li key={idx} className="text-sm border-l-2 border-amber-300 pl-3 py-1">
+                  <div className="flex items-start gap-2">
+                    <span className="bg-amber-200 text-amber-800 text-xs font-mono px-2 py-0.5 rounded">
+                      {warning.code}
                     </span>
-                    <p className="text-sm mt-1 capitalize px-2 py-0.5 inline-block bg-indigo-100 text-indigo-800 rounded">
-                      {section.layout.variant}
-                    </p>
-                  </div>
-                )}
-
-                {/* Style */}
-                {section.style && (
-                  <div>
-                    <span className="text-xs font-medium text-gray-600">
-                      Style
-                    </span>
-                    <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                      {section.style.paddingX !== undefined && (
-                        <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                          paddingX: {section.style.paddingX}
-                        </span>
-                      )}
-                      {section.style.paddingY !== undefined && (
-                        <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                          paddingY: {section.style.paddingY}
-                        </span>
-                      )}
-                      {section.style.background && (
-                        <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded">
-                          bg: {section.style.background}
-                        </span>
+                    <div className="flex-1">
+                      <p className="text-amber-900">{warning.message}</p>
+                      {warning.path && (
+                        <p className="text-amber-600 text-xs mt-0.5 font-mono">
+                          {warning.path}
+                        </p>
                       )}
                     </div>
                   </div>
-                )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        </div>
+      )}
 
-                {/* Blocks */}
-                <div>
-                  <span className="text-xs font-medium text-gray-600">
-                    Blocks ({section.blocks.length})
-                  </span>
-                  <div className="mt-2 space-y-2">
-                    {section.blocks.map((block, blockIdx) => (
-                      <div
-                        key={blockIdx}
-                        className="p-2 bg-white border border-gray-200 rounded text-xs"
-                      >
-                        <div className="flex items-start gap-2">
-                          <span className="font-mono text-gray-500 min-w-[80px]">
-                            {block.type}
-                          </span>
-                          <div className="flex-1">
-                            {block.type === "heading" && (
-                              <div>
-                                <p className="font-medium">
-                                  H{block.level || 2}: {block.text}
-                                </p>
-                                {block.align && (
-                                  <span className="text-gray-500">
-                                    align: {block.align}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {block.type === "paragraph" && (
-                              <div>
-                                <p>{block.text}</p>
-                                {block.align && (
-                                  <span className="text-gray-500">
-                                    align: {block.align}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {block.type === "button" && (
-                              <div>
-                                <p className="font-medium">{block.text}</p>
-                                <p className="text-blue-600 break-all">
-                                  → {block.href}
-                                </p>
-                                {block.align && (
-                                  <span className="text-gray-500">
-                                    align: {block.align}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {block.type === "logo" && (
-                              <div>
-                                <p className="break-all">{block.src}</p>
-                                {block.href && (
-                                  <p className="text-blue-600 break-all">
-                                    link: {block.href}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                            {block.type === "image" && (
-                              <div>
-                                <p className="font-medium">{block.alt}</p>
-                                <p className="text-gray-600 break-all">
-                                  {block.src}
-                                </p>
-                                {block.href && (
-                                  <p className="text-blue-600 break-all">
-                                    link: {block.href}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                            {block.type === "productCard" && (
-                              <div>
-                                <p className="font-medium">
-                                  Product: {block.productRef}
-                                </p>
-                                {spec.catalog?.items.find(
-                                  (p) => p.id === block.productRef
-                                ) && (
-                                  <p className="text-gray-600">
-                                    {
-                                      spec.catalog.items.find(
-                                        (p) => p.id === block.productRef
-                                      )?.title
-                                    }
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                            {block.type === "smallPrint" && (
-                              <p className="text-gray-600">{block.text}</p>
-                            )}
-                            {block.type === "spacer" && (
-                              <p className="text-gray-600">
-                                Height: {block.size}px
-                              </p>
-                            )}
-                            {block.type === "divider" && (
-                              <p className="text-gray-600">───</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+      {/* Meta Information */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Email Metadata</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium text-gray-700">Subject</label>
+            <p className="text-gray-900 mt-1">{spec.meta.subject}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Preheader</label>
+            <p className="text-gray-600 text-sm mt-1">{spec.meta.preheader}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Theme */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Theme</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700">Primary Color</label>
+            <div className="flex items-center gap-2 mt-1">
+              <div
+                className="w-8 h-8 rounded border border-gray-300"
+                style={{ backgroundColor: spec.theme.primaryColor }}
+              />
+              <span className="text-sm font-mono text-gray-600">
+                {spec.theme.primaryColor}
+              </span>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Background</label>
+            <div className="flex items-center gap-2 mt-1">
+              <div
+                className="w-8 h-8 rounded border border-gray-300"
+                style={{ backgroundColor: spec.theme.backgroundColor }}
+              />
+              <span className="text-sm font-mono text-gray-600">
+                {spec.theme.backgroundColor}
+              </span>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Text Color</label>
+            <div className="flex items-center gap-2 mt-1">
+              <div
+                className="w-8 h-8 rounded border border-gray-300"
+                style={{ backgroundColor: spec.theme.textColor }}
+              />
+              <span className="text-sm font-mono text-gray-600">
+                {spec.theme.textColor}
+              </span>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Heading Font</label>
+            <p className="text-sm text-gray-900 mt-1">{spec.theme.font.heading}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Body Font</label>
+            <p className="text-sm text-gray-900 mt-1">{spec.theme.font.body}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Container Width</label>
+            <p className="text-sm text-gray-900 mt-1">{spec.theme.containerWidth}px</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Sections */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Sections ({spec.sections.length})
+        </h3>
+        <div className="space-y-4">
+          {spec.sections.map((section, idx) => (
+            <details
+              key={section.id}
+              className="border border-gray-200 rounded-lg p-4"
+            >
+              <summary className="cursor-pointer font-medium text-gray-900 flex items-center gap-2">
+                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                  {section.type}
+                </span>
+                <span className="text-sm text-gray-600">{section.id}</span>
+                <span className="text-xs text-gray-500 ml-auto">
+                  {section.blocks.length} blocks
+                </span>
+              </summary>
+              <div className="mt-4 space-y-2">
+                {section.layout && (
+                  <div className="text-sm">
+                    <span className="text-gray-600">Layout: </span>
+                    <span className="font-mono text-gray-900">
+                      {section.layout.variant}
+                    </span>
                   </div>
+                )}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Blocks:</p>
+                  {section.blocks.map((block, blockIdx) => (
+                    <div
+                      key={blockIdx}
+                      className="bg-gray-50 rounded p-3 text-sm border border-gray-100"
+                    >
+                      <span className="bg-gray-200 text-gray-800 text-xs px-2 py-0.5 rounded font-mono">
+                        {block.type}
+                      </span>
+                      {block.type === "heading" && (
+                        <p className="mt-2 text-gray-900 font-medium">{block.text}</p>
+                      )}
+                      {block.type === "paragraph" && (
+                        <p className="mt-2 text-gray-700">{block.text}</p>
+                      )}
+                      {block.type === "button" && (
+                        <div className="mt-2">
+                          <p className="text-gray-900 font-medium">{block.text}</p>
+                          <p className="text-blue-600 text-xs mt-1 break-all">
+                            {block.href}
+                          </p>
+                        </div>
+                      )}
+                      {block.type === "logo" && (
+                        <p className="mt-2 text-gray-700 text-xs break-all">
+                          {block.src}
+                        </p>
+                      )}
+                      {block.type === "image" && (
+                        <div className="mt-2">
+                          <p className="text-gray-900">{block.alt}</p>
+                          <p className="text-gray-600 text-xs mt-1 break-all">
+                            {block.src}
+                          </p>
+                        </div>
+                      )}
+                      {block.type === "productCard" && (
+                        <p className="mt-2 text-gray-700 font-mono text-xs">
+                          Ref: {block.productRef}
+                        </p>
+                      )}
+                      {block.type === "smallPrint" && (
+                        <p className="mt-2 text-gray-600 text-xs">{block.text}</p>
+                      )}
+                      {block.type === "spacer" && (
+                        <p className="mt-2 text-gray-600 text-xs">
+                          Height: {block.size}px
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             </details>
@@ -376,13 +214,47 @@ export default function EmailSpecViewer({
         </div>
       </div>
 
-      {/* Dev Info */}
-      <div className="pt-4 border-t text-xs text-gray-500">
-        <p>
-          This is a devtool view of the canonical EmailSpec JSON. The actual
-          email preview will be rendered in a later stage.
-        </p>
-      </div>
+      {/* Catalog */}
+      {spec.catalog && spec.catalog.items.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Product Catalog ({spec.catalog.items.length})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {spec.catalog.items.map((product) => (
+              <div
+                key={product.id}
+                className="border border-gray-200 rounded-lg p-4 flex gap-3"
+              >
+                <img
+                  src={product.image}
+                  alt={product.title}
+                  className="w-16 h-16 object-cover rounded"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">
+                    {product.title}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1">{product.price}</p>
+                  <p className="text-xs text-gray-500 mt-1 font-mono truncate">
+                    ID: {product.id}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* JSON Export */}
+      <details className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <summary className="cursor-pointer font-medium text-gray-900">
+          View Raw JSON
+        </summary>
+        <pre className="mt-4 text-xs overflow-auto bg-white p-4 rounded border border-gray-200 max-h-96">
+          {JSON.stringify(spec, null, 2)}
+        </pre>
+      </details>
     </div>
   );
 }
