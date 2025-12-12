@@ -1,0 +1,377 @@
+# PR Roadmap — AI Marketing Email Generator
+
+> **Audience:** This roadmap is written for an AI coding agent (or highly autonomous engineer) to implement the system incrementally. Each PR is intentionally scoped, testable, and merge-safe. No PR should exceed its stated scope.
+
+---
+
+## Guiding Principles for All PRs
+
+* Every PR must be:
+
+  * Independently reviewable
+  * Type-safe (TypeScript)
+  * Covered by basic tests or runtime assertions
+* No PR should introduce LLM calls *without* a deterministic contract (schema or interface).
+* Rendering quality and determinism > feature breadth.
+
+---
+
+## PR0 — Repo & Tooling Scaffold (Foundation)
+
+### Goal
+
+Create a clean, professional foundation suitable for a public take-home.
+
+### Includes
+
+* Next.js (App Router) + TypeScript
+* ESLint + Prettier
+* Tailwind CSS
+* Folder structure
+
+### Required Files
+
+```
+/app
+  /page.tsx
+  /api/generate/route.ts
+/lib
+  /types
+  /utils
+/spec
+/renderer
+/scraper
+```
+
+### Acceptance Criteria
+
+* App runs locally
+* Deployed to Vercel
+* No business logic yet
+
+---
+
+## PR1 — Core Type System & Contracts
+
+### Goal
+
+Establish the **canonical contracts** used everywhere in the system.
+
+### Includes
+
+* TypeScript interfaces / Zod schemas for:
+
+  * BrandContext
+  * CampaignIntent
+  * EmailPlan
+  * EmailSpec
+  * Section
+  * Block
+
+### Details
+
+* Enums for section types and block types
+* Defaults for missing optional fields
+* Strict typing (no `any`)
+
+### Acceptance Criteria
+
+* Zod schema validates example EmailSpec
+* Schemas exported and reused across backend + renderer
+
+---
+
+## PR2 — Brand Scraping Engine (Deterministic)
+
+### Goal
+
+Convert a public brand URL into a **normalized BrandContext**.
+
+### Includes
+
+* Playwright setup (server-only)
+* Page fetcher with timeout + retries
+* Homepage parsing
+* Product page discovery heuristics
+
+### Technical Details
+
+* Fetch homepage DOM
+* Extract:
+
+  * brand name
+  * logo URL
+  * CSS variables for colors
+  * font-family
+  * headline snippets
+* Fetch up to 4 product pages
+
+### Edge Cases
+
+* JS-heavy Shopify sites
+* Missing price or image
+* Fallback defaults
+
+### Acceptance Criteria
+
+* Given 3 known ecommerce URLs, scraper returns valid BrandContext
+* No LLM calls
+
+---
+
+## PR3 — BrandContext Normalization & Caching
+
+### Goal
+
+Ensure BrandContext is **clean, stable, and reusable**.
+
+### Includes
+
+* Normalization functions:
+
+  * color sanitization
+  * font fallback
+  * snippet truncation
+* Cache BrandContext by URL (in-memory or KV)
+
+### Acceptance Criteria
+
+* Same URL returns cached BrandContext
+* Missing fields always filled with defaults
+
+---
+
+## PR4 — Campaign Intent Parsing
+
+### Goal
+
+Interpret user prompt into structured intent.
+
+### Includes
+
+* LLM call to extract:
+
+  * campaign type
+  * tone modifiers
+  * offer details
+  * CTA preference
+* Zod validation of CampaignIntent
+
+### Prompt Constraints
+
+* Must output JSON only
+* No creative copy yet
+
+### Acceptance Criteria
+
+* Same prompt always yields valid CampaignIntent
+* Invalid output repaired
+
+---
+
+## PR5 — Email Planning Layer
+
+### Goal
+
+Decide **email structure** without writing copy.
+
+### Includes
+
+* LLM-based planner
+* Mapping from CampaignIntent → section list
+* Hard constraints:
+
+  * header + hero + footer always present
+
+### Output
+
+* EmailPlan JSON
+
+### Acceptance Criteria
+
+* Sale vs launch produce different section plans
+* No text copy in output
+
+---
+
+## PR6 — EmailSpec Generator (Core AI Logic)
+
+### Goal
+
+Generate the **full EmailSpec JSON**.
+
+### Includes
+
+* LLM prompt using:
+
+  * BrandContext
+  * CampaignIntent
+  * EmailPlan
+* Strict JSON schema enforcement
+
+### Responsibilities
+
+* Subject + preheader
+* Section content
+* Block population
+
+### Acceptance Criteria
+
+* Output validates against EmailSpec schema
+* No HTML in output
+
+---
+
+## PR7 — Validation, Linting & Repair Loop
+
+### Goal
+
+Guarantee EmailSpec correctness and quality.
+
+### Includes
+
+* Zod validation
+* Structural lint rules:
+
+  * CTA exists
+  * footer includes unsubscribe token
+  * product refs resolve
+* Repair LLM call on failure
+
+### Acceptance Criteria
+
+* Invalid specs repaired automatically
+* System never crashes on bad LLM output
+
+---
+
+## PR8 — MJML Renderer (JSON → Email HTML)
+
+### Goal
+
+Produce **sendable, responsive email HTML**.
+
+### Includes
+
+* MJML dependency
+* Section → MJML mapping
+* Block → MJML mapping
+* Inline styles only
+
+### Technical Notes
+
+* 600px container
+* Mobile stacking handled by MJML
+
+### Acceptance Criteria
+
+* HTML renders correctly in browser
+* Passes basic email client sanity checks
+
+---
+
+## PR9 — Preview Renderer (Browser)
+
+### Goal
+
+Allow users to visually inspect the email.
+
+### Includes
+
+* iframe-based preview
+* Responsive toggle (desktop/mobile)
+* Same HTML as export
+
+### Acceptance Criteria
+
+* Preview matches exported HTML
+
+---
+
+## PR10 — API Orchestration (/api/generate)
+
+### Goal
+
+Wire the full pipeline end-to-end.
+
+### Includes
+
+* Sequential execution:
+
+  1. scrape brand
+  2. normalize
+  3. parse intent
+  4. plan email
+  5. generate EmailSpec
+  6. validate/repair
+  7. render HTML
+* Timeout handling
+
+### Acceptance Criteria
+
+* One request returns EmailSpec + HTML
+
+---
+
+## PR11 — UI: Input Form & Results View
+
+### Goal
+
+Create a clean, demo-ready UI.
+
+### Includes
+
+* Brand URL input
+* Prompt textarea
+* Loading states
+* Result tabs:
+
+  * Preview
+  * HTML
+  * JSON
+
+### Acceptance Criteria
+
+* App usable end-to-end
+* No console errors
+
+---
+
+## PR12 — Polishing & Demo Hardening
+
+### Goal
+
+Make the project reviewer-ready.
+
+### Includes
+
+* Better error messages
+* Example prompts
+* README cleanup
+* Performance tweaks
+
+### Acceptance Criteria
+
+* App feels stable and intentional
+* Clear instructions for reviewers
+
+---
+
+## Optional Stretch PRs (Only if Time Allows)
+
+* PR13: Image generation for hero sections
+* PR14: Multiple email templates per run
+* PR15: Export to ESP-compatible formats
+
+---
+
+## Final Notes for AI Coding Agents
+
+* Follow PR order strictly
+* Do not skip schema validation
+* Favor deterministic behavior over creativity
+* If uncertain, consult `spec.md` — it is the source of truth
+
+---
+
+**This roadmap is designed to produce a production-grade AI email generator with minimal wasted work and maximum reviewer confidence.**
