@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta property="og:site_name" content="TestBrand" />
+    <meta property="og:image" content="/images/og-image.jpg" />
+    <title>TestBrand - Premium Products | Official Store</title>
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      :root {
+        --primary-color: #ff5733;
+        --accent-color: #3366ff;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img src="/logo.png" alt="TestBrand Logo" class="logo" />
+      <nav>
+        <a href="/collections/featured">Featured</a>
+        <a href="/collections/new">New Arrivals</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h1>Welcome to Premium Quality</h1>
+      <p class="tagline">Crafted with passion, delivered with care</p>
+      <button class="cta">Shop Now</button>
+    </section>
+
+    <section class="products">
+      <h2>Featured Products</h2>
+      <div class="product-grid">
+        <a href="/products/product-1">
+          <img src="/images/product-1.jpg" alt="Product 1" />
+          <h3>Amazing Product One</h3>
+          <p class="price">$99.99</p>
+        </a>
+        <a href="/products/product-2">
+          <img src="/images/product-2.jpg" alt="Product 2" />
+          <h3>Wonderful Product Two</h3>
+          <p class="price">$149.99</p>
+        </a>
+      </div>
+    </section>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "Amazing Product One",
+        "image": "/images/product-1.jpg",
+        "url": "/products/product-1",
+        "offers": {
+          "@type": "Offer",
+          "price": "99.99",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+  </body>
+</html>

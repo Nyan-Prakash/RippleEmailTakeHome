@@ -14,11 +14,17 @@ This project implements a sophisticated email generation pipeline that:
 
 The system enforces email-safe constraints while giving marketers creative freedom through natural language.
 
-## Current Status (PR0)
+## Current Status (PR4)
 
-🚧 **Foundation Scaffold Only**
+✅ **Campaign Intent Parser**
 
-This PR establishes the project structure and tooling. No business logic (scraping, AI calls, rendering) has been implemented yet. See the [PR Roadmap](./PR_ROADMAP.md) for the full implementation plan.
+- **PR0**: Foundation scaffold complete
+- **PR1**: Core type system implemented
+- **PR2**: Brand scraping engine complete
+- **PR3**: Brand ingestion API & UI complete
+- **PR4**: Campaign intent parser with LLM complete (current)
+
+The system can now scrape brand websites, extract brand context, and parse natural language campaign prompts into structured intent using an LLM. See the [PR Roadmap](./PR_ROADMAP.md) for the full implementation plan.
 
 ## Architecture
 
@@ -76,10 +82,13 @@ pnpm dev
 | `pnpm dev`          | Start Next.js development server |
 | `pnpm build`        | Build production bundle          |
 | `pnpm start`        | Start production server          |
+| `pnpm test`         | Run tests with Vitest            |
+| `pnpm test:watch`   | Run tests in watch mode          |
 | `pnpm lint`         | Run ESLint                       |
 | `pnpm format`       | Format code with Prettier        |
 | `pnpm format:check` | Check code formatting            |
 | `pnpm typecheck`    | Run TypeScript compiler checks   |
+| `pnpm scraper:dev`  | Test brand scraper (dev utility) |
 
 ## Project Structure
 
@@ -117,6 +126,122 @@ Returns:
   "ts": "2024-12-12T10:30:00.000Z"
 }
 ```
+
+### Brand Ingestion (PR3)
+
+```bash
+POST /api/brand/ingest
+Content-Type: application/json
+
+{
+  "url": "https://www.allbirds.com"
+}
+```
+
+Success Response (200):
+
+```json
+{
+  "brandContext": {
+    "brand": {
+      "name": "Allbirds",
+      "website": "https://www.allbirds.com",
+      "logoUrl": "https://...",
+      "colors": {
+        "primary": "#111111",
+        "background": "#ECE9E2",
+        "text": "#000000"
+      },
+      "fonts": {
+        "heading": "Geograph",
+        "body": "Geograph"
+      },
+      "voiceHints": ["sustainable", "comfortable", "simple"],
+      "snippets": {}
+    },
+    "catalog": [
+      {
+        "id": "123",
+        "title": "Wool Runners",
+        "price": "$98",
+        "image": "https://...",
+        "url": "https://..."
+      }
+    ],
+    "trust": {}
+  }
+}
+```
+
+Error Response (400/403/429/502/504):
+
+```json
+{
+  "error": {
+    "code": "INVALID_URL" | "BLOCKED_URL" | "SCRAPE_TIMEOUT" | "SCRAPE_FAILED" | "RATE_LIMITED" | "INTERNAL",
+    "message": "Human readable error message"
+  }
+}
+```
+
+**Rate Limiting**: 10 requests per minute per IP address (in-memory, no external storage)
+
+### Campaign Intent Parser (PR4)
+
+```bash
+POST /api/campaign/intent
+Content-Type: application/json
+
+{
+  "brandContext": { /* BrandContext from /api/brand/ingest */ },
+  "prompt": "make me an email for my 50% sale ending tonight"
+}
+```
+
+Success Response (200):
+
+```json
+{
+  "intent": {
+    "type": "sale",
+    "goal": "Drive urgency for limited-time 50% discount",
+    "urgency": "high",
+    "timeWindow": {
+      "end": "2024-12-13T23:59:59Z"
+    },
+    "tone": "urgent",
+    "cta": {
+      "primary": "Shop Sale Now",
+      "secondary": "Browse All Deals"
+    },
+    "offer": {
+      "kind": "percent",
+      "value": 50,
+      "details": "50% off sitewide"
+    },
+    "keywords": ["sale", "limited-time", "50% off", "tonight", "hurry"],
+    "confidence": 0.95,
+    "rationale": "Clear sale campaign with specific discount and time urgency"
+  }
+}
+```
+
+Error Response (400/500/502/504):
+
+```json
+{
+  "error": {
+    "code": "INVALID_PROMPT" | "LLM_CONFIG_MISSING" | "LLM_FAILED" | "LLM_TIMEOUT" | "LLM_OUTPUT_INVALID" | "INTERNAL",
+    "message": "Human readable error message"
+  }
+}
+```
+
+**Environment Variables**:
+
+- `OPENAI_API_KEY`: Required for LLM-based intent parsing
+
+**Note**: No real LLM calls are made in tests. All tests use mocked LLM clients.
 
 ## Deployment
 

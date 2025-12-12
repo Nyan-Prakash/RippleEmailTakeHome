@@ -1,0 +1,223 @@
+{
+  "meta": {
+    "subject": "Introducing the Heritage Collection - Timeless Craftsmanship",
+    "preheader": "Discover our newest collection of handcrafted leather goods, designed to last a lifetime."
+  },
+  "theme": {
+    "containerWidth": 600,
+    "backgroundColor": "#FAF9F7",
+    "surfaceColor": "#FFFFFF",
+    "textColor": "#2D3142",
+    "mutedTextColor": "#707070",
+    "primaryColor": "#8B6F47",
+    "font": {
+      "heading": "Georgia, serif",
+      "body": "Inter, sans-serif"
+    },
+    "button": {
+      "radius": 4,
+      "style": "solid"
+    }
+  },
+  "sections": [
+    {
+      "id": "header-launch",
+      "type": "header",
+      "blocks": [
+        {
+          "type": "logo",
+          "src": "https://acme.example.com/logo.png",
+          "href": "https://acme.example.com",
+          "align": "center"
+        }
+      ],
+      "style": {
+        "paddingX": 24,
+        "paddingY": 20,
+        "background": "surface"
+      }
+    },
+    {
+      "id": "hero-launch",
+      "type": "hero",
+      "blocks": [
+        {
+          "type": "image",
+          "src": "https://acme.example.com/collections/heritage-hero.jpg",
+          "alt": "Heritage Collection - Handcrafted Leather Goods",
+          "align": "center"
+        },
+        {
+          "type": "spacer",
+          "size": 24
+        },
+        {
+          "type": "heading",
+          "text": "The Heritage Collection",
+          "align": "center",
+          "level": 1
+        },
+        {
+          "type": "paragraph",
+          "text": "Crafted by hand using traditional techniques passed down through generations. Each piece in our Heritage Collection tells a story of dedication, quality, and timeless design.",
+          "align": "center"
+        }
+      ],
+      "style": {
+        "paddingX": 32,
+        "paddingY": 40,
+        "background": "transparent"
+      }
+    },
+    {
+      "id": "feature-quality",
+      "type": "feature",
+      "blocks": [],
+      "layout": {
+        "variant": "twoColumn",
+        "columns": [
+          {
+            "width": "50%",
+            "blocks": [
+              {
+                "type": "image",
+                "src": "https://acme.example.com/features/craftsmanship.jpg",
+                "alt": "Artisan crafting leather"
+              }
+            ]
+          },
+          {
+            "width": "50%",
+            "blocks": [
+              {
+                "type": "heading",
+                "text": "Built to Last",
+                "level": 2
+              },
+              {
+                "type": "paragraph",
+                "text": "Every stitch, every cut, every detail is executed with precision. We use only full-grain leather that develops a rich patina over time, becoming more beautiful with age."
+              }
+            ]
+          }
+        ]
+      },
+      "style": {
+        "paddingX": 24,
+        "paddingY": 32,
+        "background": "surface"
+      }
+    },
+    {
+      "id": "products-launch",
+      "type": "productGrid",
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "Explore the Collection",
+          "align": "center",
+          "level": 2
+        },
+        {
+          "type": "spacer",
+          "size": 24
+        }
+      ],
+      "layout": {
+        "variant": "single"
+      },
+      "style": {
+        "paddingX": 24,
+        "paddingY": 32,
+        "background": "transparent"
+      }
+    },
+    {
+      "id": "cta-launch",
+      "type": "hero",
+      "blocks": [
+        {
+          "type": "button",
+          "text": "Discover the Heritage Collection",
+          "href": "https://acme.example.com/collections/heritage",
+          "align": "center",
+          "variant": "primary"
+        }
+      ],
+      "style": {
+        "paddingX": 24,
+        "paddingY": 32,
+        "background": "transparent"
+      }
+    },
+    {
+      "id": "testimonial-launch",
+      "type": "testimonial",
+      "blocks": [
+        {
+          "type": "divider"
+        },
+        {
+          "type": "spacer",
+          "size": 24
+        },
+        {
+          "type": "paragraph",
+          "text": "\"The quality is extraordinary. This isn't just a bag - it's an investment that will last decades.\"",
+          "align": "center"
+        },
+        {
+          "type": "spacer",
+          "size": 12
+        },
+        {
+          "type": "paragraph",
+          "text": "— Sarah M., Verified Customer",
+          "align": "center"
+        }
+      ],
+      "style": {
+        "paddingX": 32,
+        "paddingY": 32,
+        "background": "surface"
+      }
+    },
+    {
+      "id": "footer-launch",
+      "type": "footer",
+      "blocks": [
+        {
+          "type": "divider"
+        },
+        {
+          "type": "spacer",
+          "size": 16
+        },
+        {
+          "type": "paragraph",
+          "text": "Acme Co - Crafted for life",
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "123 Design Street, Brooklyn, NY 11201",
+          "align": "center"
+        },
+        {
+          "type": "spacer",
+          "size": 12
+        },
+        {
+          "type": "smallPrint",
+          "text": "You're receiving this email because you subscribed to our newsletter. {{unsubscribe}} anytime.",
+          "align": "center"
+        }
+      ],
+      "style": {
+        "paddingX": 24,
+        "paddingY": 32,
+        "background": "surface"
+      }
+    }
+  ]
+}

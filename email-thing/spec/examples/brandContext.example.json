@@ -1,0 +1,74 @@
+{
+  "brand": {
+    "name": "Acme Co",
+    "website": "https://acme.example.com",
+    "logoUrl": "https://acme.example.com/logo.png",
+    "colors": {
+      "primary": "#FF6B35",
+      "background": "#FFFFFF",
+      "text": "#2D3142"
+    },
+    "fonts": {
+      "heading": "Inter, sans-serif",
+      "body": "Inter, sans-serif"
+    },
+    "voiceHints": [
+      "Modern and approachable",
+      "Quality-focused",
+      "Sustainable",
+      "Built to last",
+      "Timeless design"
+    ],
+    "snippets": {
+      "tagline": "Crafted for life",
+      "headlines": [
+        "Discover Timeless Quality",
+        "Built to Last",
+        "The Perfect Addition to Your Home",
+        "Sustainably Made, Beautifully Designed"
+      ],
+      "ctas": [
+        "Shop Now",
+        "Discover More",
+        "Explore the Collection",
+        "Get Started"
+      ]
+    }
+  },
+  "catalog": [
+    {
+      "id": "prod-001",
+      "title": "Classic Leather Tote",
+      "price": "$149.00",
+      "image": "https://acme.example.com/products/tote.jpg",
+      "url": "https://acme.example.com/products/classic-leather-tote"
+    },
+    {
+      "id": "prod-002",
+      "title": "Minimalist Wallet",
+      "price": "$49.00",
+      "image": "https://acme.example.com/products/wallet.jpg",
+      "url": "https://acme.example.com/products/minimalist-wallet"
+    },
+    {
+      "id": "prod-003",
+      "title": "Canvas Backpack",
+      "price": "$89.00",
+      "image": "https://acme.example.com/products/backpack.jpg",
+      "url": "https://acme.example.com/products/canvas-backpack"
+    },
+    {
+      "id": "prod-004",
+      "title": "Brass Key Ring",
+      "price": "$24.00",
+      "image": "https://acme.example.com/products/keyring.jpg",
+      "url": "https://acme.example.com/products/brass-key-ring"
+    }
+  ],
+  "trust": {
+    "freeShipping": "Free shipping on orders over $100",
+    "returns": "30-day returns",
+    "warranty": "Lifetime warranty",
+    "sustainability": "Carbon-neutral shipping"
+  }
+}
