@@ -70,7 +70,7 @@ export async function scrapeBrand(brandUrl: string): Promise<BrandContext> {
     });
 
     // 6. Collect products from homepage
-    let allProducts: ProductCandidate[] = [];
+    const allProducts: ProductCandidate[] = [];
     const homepageProducts = extractProductsFromJsonLd($, homepageUrl);
     allProducts.push(...homepageProducts);
 

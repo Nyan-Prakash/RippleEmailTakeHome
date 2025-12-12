@@ -3,11 +3,17 @@
 import { useState } from "react";
 import type { BrandContext } from "@/lib/types";
 import type { CampaignIntent } from "@/lib/llm/schemas/campaignIntent";
+import type { EmailPlan } from "@/lib/llm/schemas/emailPlan";
+import type { EmailSpec } from "@/lib/schemas/emailSpec";
 import { BrandProfile } from "./components/BrandProfile";
 import CampaignIntentCard from "./components/CampaignIntentCard";
+import EmailPlanCard from "./components/EmailPlanCard";
+import EmailSpecViewer from "./components/EmailSpecViewer";
 
 type ViewState = "form" | "loading" | "success" | "error";
 type IntentState = "idle" | "loading" | "success" | "error";
+type PlanState = "idle" | "loading" | "success" | "error";
+type SpecState = "idle" | "loading" | "success" | "error";
 
 interface ErrorResponse {
   code: string;
@@ -27,6 +33,16 @@ export default function Home() {
     null
   );
   const [intentError, setIntentError] = useState<ErrorResponse | null>(null);
+
+  // Email plan state
+  const [planState, setPlanState] = useState<PlanState>("idle");
+  const [emailPlan, setEmailPlan] = useState<EmailPlan | null>(null);
+  const [planError, setPlanError] = useState<ErrorResponse | null>(null);
+
+  // Email spec state
+  const [specState, setSpecState] = useState<SpecState>("idle");
+  const [emailSpec, setEmailSpec] = useState<EmailSpec | null>(null);
+  const [specError, setSpecError] = useState<ErrorResponse | null>(null);
 
   const handleAnalyze = async () => {
     if (!brandUrl.trim()) {
@@ -110,6 +126,50 @@ export default function Home() {
     }
   };
 
+  const handlePlanEmail = async () => {
+    if (!brandContext || !campaignIntent) {
+      setPlanError({
+        code: "INVALID_INPUT",
+        message: "Brand context and campaign intent are required",
+      });
+      setPlanState("error");
+      return;
+    }
+
+    setPlanState("loading");
+    setPlanError(null);
+
+    try {
+      const response = await fetch("/api/email/plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          brandContext,
+          intent: campaignIntent,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setPlanError(data.error);
+        setPlanState("error");
+        return;
+      }
+
+      setEmailPlan(data.plan);
+      setPlanState("success");
+    } catch {
+      setPlanError({
+        code: "INTERNAL",
+        message: "Failed to connect to the server. Please try again.",
+      });
+      setPlanState("error");
+    }
+  };
+
   const handleReset = () => {
     setBrandUrl("");
     setBrandContext(null);
@@ -119,6 +179,9 @@ export default function Home() {
     setCampaignIntent(null);
     setIntentError(null);
     setIntentState("idle");
+    setEmailPlan(null);
+    setPlanError(null);
+    setPlanState("idle");
   };
 
   const handleNewCampaign = () => {
@@ -126,6 +189,69 @@ export default function Home() {
     setCampaignIntent(null);
     setIntentError(null);
     setIntentState("idle");
+    setEmailPlan(null);
+    setPlanError(null);
+    setPlanState("idle");
+  };
+
+  const handleNewPlan = () => {
+    setEmailPlan(null);
+    setPlanError(null);
+    setPlanState("idle");
+    setEmailSpec(null);
+    setSpecError(null);
+    setSpecState("idle");
+  };
+
+  const handleGenerateSpec = async () => {
+    if (!brandContext || !campaignIntent || !emailPlan) {
+      setSpecError({
+        code: "INVALID_INPUT",
+        message: "Brand context, campaign intent, and email plan are required",
+      });
+      setSpecState("error");
+      return;
+    }
+
+    setSpecState("loading");
+    setSpecError(null);
+
+    try {
+      const response = await fetch("/api/email/spec", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          brandContext,
+          intent: campaignIntent,
+          plan: emailPlan,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSpecError(data.error);
+        setSpecState("error");
+        return;
+      }
+
+      setEmailSpec(data.spec);
+      setSpecState("success");
+    } catch {
+      setSpecError({
+        code: "INTERNAL",
+        message: "Failed to connect to the server. Please try again.",
+      });
+      setSpecState("error");
+    }
+  };
+
+  const handleNewSpec = () => {
+    setEmailSpec(null);
+    setSpecError(null);
+    setSpecState("idle");
   };
 
   return (
@@ -337,10 +463,159 @@ export default function Home() {
 
             {/* Campaign Intent Card */}
             {intentState === "success" && campaignIntent && (
-              <CampaignIntentCard
-                intent={campaignIntent}
-                onAnalyzeAnother={handleNewCampaign}
-              />
+              <div className="space-y-6">
+                <CampaignIntentCard
+                  intent={campaignIntent}
+                  onAnalyzeAnother={handleNewCampaign}
+                />
+
+                {/* Plan Email Section */}
+                {planState !== "success" && (
+                  <div className="rounded-lg bg-white p-8 shadow-md">
+                    <h2 className="text-xl font-bold text-slate-900 mb-4">
+                      Generate Email Plan
+                    </h2>
+                    <p className="text-sm text-slate-600 mb-4">
+                      Create a structured email outline based on your brand and
+                      campaign intent
+                    </p>
+
+                    <div className="space-y-4">
+                      {/* Plan Error State */}
+                      {planState === "error" && planError && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                          <div className="flex gap-3">
+                            <div className="flex-shrink-0">
+                              <svg
+                                className="h-5 w-5 text-red-600"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-sm font-medium text-red-800">
+                                {planError.code}
+                              </h3>
+                              <p className="mt-1 text-sm text-red-700">
+                                {planError.message}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Plan Loading State */}
+                      {planState === "loading" && (
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-5 w-5 animate-spin rounded-full border-3 border-blue-300 border-t-blue-600" />
+                            <p className="text-sm font-medium text-blue-800">
+                              Generating email plan...
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Plan Email Button */}
+                      <button
+                        onClick={handlePlanEmail}
+                        disabled={planState === "loading"}
+                        className="w-full rounded-md bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                      >
+                        {planState === "loading" ? "Planning..." : "Plan Email"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Email Plan Card */}
+                {planState === "success" && emailPlan && (
+                  <div className="space-y-6">
+                    <EmailPlanCard plan={emailPlan} onNewPlan={handleNewPlan} />
+
+                    {/* Generate Email Spec Section */}
+                    {specState !== "success" && (
+                      <div className="rounded-lg bg-white p-8 shadow-md">
+                        <h2 className="text-xl font-bold text-slate-900 mb-4">
+                          Generate Email Spec
+                        </h2>
+                        <p className="text-sm text-slate-600 mb-4">
+                          Create the canonical EmailSpec JSON that defines the
+                          email structure
+                        </p>
+
+                        <div className="space-y-4">
+                          {/* Spec Error State */}
+                          {specState === "error" && specError && (
+                            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                              <div className="flex gap-3">
+                                <div className="flex-shrink-0">
+                                  <svg
+                                    className="h-5 w-5 text-red-600"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="text-sm font-medium text-red-800">
+                                    {specError.code}
+                                  </h3>
+                                  <p className="mt-1 text-sm text-red-700">
+                                    {specError.message}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Spec Loading State */}
+                          {specState === "loading" && (
+                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-5 w-5 animate-spin rounded-full border-3 border-blue-300 border-t-blue-600" />
+                                <p className="text-sm font-medium text-blue-800">
+                                  Generating email spec...
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Generate Spec Button */}
+                          <button
+                            onClick={handleGenerateSpec}
+                            disabled={specState === "loading"}
+                            className="w-full rounded-md bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                          >
+                            {specState === "loading"
+                              ? "Generating..."
+                              : "Generate Email Spec"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Email Spec Viewer */}
+                    {specState === "success" && emailSpec && (
+                      <EmailSpecViewer
+                        spec={emailSpec}
+                        onNewSpec={handleNewSpec}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -348,12 +623,13 @@ export default function Home() {
         {/* Info Footer */}
         <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-6">
           <h2 className="mb-2 text-sm font-semibold text-slate-900">
-            PR4 - Campaign Intent Parser
+            PR6 - EmailSpec Generator
           </h2>
           <p className="text-sm text-slate-600">
-            This interface extracts brand context from e-commerce websites and
-            parses campaign intent from natural language prompts. Future PRs
-            will add email planning and generation capabilities.
+            This interface extracts brand context from e-commerce websites,
+            parses campaign intent from natural language prompts, generates
+            structured email plans, and creates canonical EmailSpec JSON. Future
+            PRs will add validation and MJML rendering.
           </p>
         </div>
       </div>

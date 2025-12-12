@@ -13,6 +13,22 @@ describe("normalizeEmailSpec", () => {
         type: "header" as const,
         blocks: [],
       },
+      {
+        id: "test-2",
+        type: "hero" as const,
+        blocks: [
+          {
+            type: "button" as const,
+            text: "Click",
+            href: "https://example.com",
+          },
+        ],
+      },
+      {
+        id: "test-3",
+        type: "footer" as const,
+        blocks: [],
+      },
     ],
   });
 
@@ -29,6 +45,17 @@ describe("normalizeEmailSpec", () => {
           blocks: [],
         },
         {
+          id: "hero-id",
+          type: "hero" as const,
+          blocks: [
+            {
+              type: "button" as const,
+              text: "Click",
+              href: "https://example.com",
+            },
+          ],
+        },
+        {
           id: "another-id",
           type: "footer" as const,
           blocks: [],
@@ -40,6 +67,7 @@ describe("normalizeEmailSpec", () => {
 
     expect(result.sections[0].id).toBeTruthy();
     expect(result.sections[1].id).toBeTruthy();
+    expect(result.sections[2].id).toBeTruthy();
     expect(result.sections[0].id).not.toBe(result.sections[1].id);
   });
 
@@ -56,6 +84,17 @@ describe("normalizeEmailSpec", () => {
           blocks: [],
         },
         {
+          id: "hero-id",
+          type: "hero" as const,
+          blocks: [
+            {
+              type: "button" as const,
+              text: "Click",
+              href: "https://example.com",
+            },
+          ],
+        },
+        {
           id: "same-id",
           type: "footer" as const,
           blocks: [],
@@ -66,7 +105,7 @@ describe("normalizeEmailSpec", () => {
     const result = normalizeEmailSpec(spec);
 
     expect(result.sections[0].id).toBe("same-id");
-    expect(result.sections[1].id).not.toBe("same-id");
+    expect(result.sections[2].id).not.toBe("same-id");
   });
 
   it("clamps containerWidth to valid range", () => {
@@ -78,7 +117,21 @@ describe("normalizeEmailSpec", () => {
       theme: {
         containerWidth: 600,
       },
-      sections: [{ id: "1", type: "header" as const, blocks: [] }],
+      sections: [
+        { id: "1", type: "header" as const, blocks: [] },
+        {
+          id: "2",
+          type: "hero" as const,
+          blocks: [
+            {
+              type: "button" as const,
+              text: "Click",
+              href: "https://example.com",
+            },
+          ],
+        },
+        { id: "3", type: "footer" as const, blocks: [] },
+      ],
     };
 
     const tooLarge = {
@@ -89,7 +142,21 @@ describe("normalizeEmailSpec", () => {
       theme: {
         containerWidth: 600,
       },
-      sections: [{ id: "1", type: "header" as const, blocks: [] }],
+      sections: [
+        { id: "1", type: "header" as const, blocks: [] },
+        {
+          id: "2",
+          type: "hero" as const,
+          blocks: [
+            {
+              type: "button" as const,
+              text: "Click",
+              href: "https://example.com",
+            },
+          ],
+        },
+        { id: "3", type: "footer" as const, blocks: [] },
+      ],
     };
 
     const resultSmall = normalizeEmailSpec(tooSmall);
@@ -111,7 +178,21 @@ describe("normalizeEmailSpec", () => {
           style: "solid" as const,
         },
       },
-      sections: [{ id: "1", type: "header" as const, blocks: [] }],
+      sections: [
+        { id: "1", type: "header" as const, blocks: [] },
+        {
+          id: "2",
+          type: "hero" as const,
+          blocks: [
+            {
+              type: "button" as const,
+              text: "Click",
+              href: "https://example.com",
+            },
+          ],
+        },
+        { id: "3", type: "footer" as const, blocks: [] },
+      ],
     };
 
     const result = normalizeEmailSpec(valid);
@@ -135,6 +216,18 @@ describe("normalizeEmailSpec", () => {
             paddingY: 24,
           },
         },
+        {
+          id: "2",
+          type: "hero" as const,
+          blocks: [
+            {
+              type: "button" as const,
+              text: "Click",
+              href: "https://example.com",
+            },
+          ],
+        },
+        { id: "3", type: "footer" as const, blocks: [] },
       ],
     };
 
