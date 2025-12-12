@@ -1,0 +1,229 @@
+{
+  "meta": {
+    "subject": "Flash Sale: 25% Off Everything - 48 Hours Only",
+    "preheader": "Don't miss our biggest sale of the season. Limited time offer ends Sunday."
+  },
+  "theme": {
+    "containerWidth": 600,
+    "backgroundColor": "#FFFFFF",
+    "surfaceColor": "#F5F5F5",
+    "textColor": "#2D3142",
+    "mutedTextColor": "#666666",
+    "primaryColor": "#FF6B35",
+    "font": {
+      "heading": "Inter, sans-serif",
+      "body": "Inter, sans-serif"
+    },
+    "button": {
+      "radius": 8,
+      "style": "solid"
+    }
+  },
+  "sections": [
+    {
+      "id": "header-1",
+      "type": "header",
+      "blocks": [
+        {
+          "type": "logo",
+          "src": "https://acme.example.com/logo.png",
+          "href": "https://acme.example.com",
+          "align": "center"
+        }
+      ],
+      "style": {
+        "paddingX": 24,
+        "paddingY": 20,
+        "background": "surface"
+      }
+    },
+    {
+      "id": "hero-1",
+      "type": "hero",
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "Flash Sale: 25% Off Everything",
+          "align": "center",
+          "level": 1
+        },
+        {
+          "type": "paragraph",
+          "text": "For 48 hours only, enjoy 25% off sitewide. From our bestselling leather totes to minimalist wallets, everything is on sale. Shop now before time runs out.",
+          "align": "center"
+        },
+        {
+          "type": "spacer",
+          "size": 16
+        },
+        {
+          "type": "button",
+          "text": "Shop the Sale",
+          "href": "https://acme.example.com/sale",
+          "align": "center",
+          "variant": "primary"
+        },
+        {
+          "type": "spacer",
+          "size": 12
+        },
+        {
+          "type": "paragraph",
+          "text": "Sale ends Sunday at midnight",
+          "align": "center"
+        }
+      ],
+      "style": {
+        "paddingX": 32,
+        "paddingY": 48,
+        "background": "transparent"
+      }
+    },
+    {
+      "id": "product-grid-1",
+      "type": "productGrid",
+      "layout": {
+        "variant": "grid",
+        "columns": 2,
+        "gap": 16
+      },
+      "blocks": [
+        {
+          "type": "productCard",
+          "productRef": "prod-001"
+        },
+        {
+          "type": "productCard",
+          "productRef": "prod-002"
+        },
+        {
+          "type": "productCard",
+          "productRef": "prod-003"
+        },
+        {
+          "type": "productCard",
+          "productRef": "prod-004"
+        }
+      ],
+      "style": {
+        "paddingX": 24,
+        "paddingY": 32,
+        "background": "surface"
+      }
+    },
+    {
+      "id": "trust-bar-1",
+      "type": "trustBar",
+      "blocks": [],
+      "layout": {
+        "variant": "twoColumn",
+        "columns": [
+          {
+            "width": "50%",
+            "blocks": [
+              {
+                "type": "paragraph",
+                "text": "Free shipping on orders over $100",
+                "align": "center"
+              },
+              {
+                "type": "paragraph",
+                "text": "Lifetime warranty",
+                "align": "center"
+              }
+            ]
+          },
+          {
+            "width": "50%",
+            "blocks": [
+              {
+                "type": "paragraph",
+                "text": "30-day returns",
+                "align": "center"
+              },
+              {
+                "type": "paragraph",
+                "text": "Carbon-neutral shipping",
+                "align": "center"
+              }
+            ]
+          }
+        ]
+      },
+      "style": {
+        "paddingX": 24,
+        "paddingY": 24,
+        "background": "transparent"
+      }
+    },
+    {
+      "id": "footer-1",
+      "type": "footer",
+      "blocks": [
+        {
+          "type": "divider"
+        },
+        {
+          "type": "spacer",
+          "size": 16
+        },
+        {
+          "type": "paragraph",
+          "text": "Acme Co - Crafted for life",
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "123 Design Street, Brooklyn, NY 11201",
+          "align": "center"
+        },
+        {
+          "type": "spacer",
+          "size": 12
+        },
+        {
+          "type": "smallPrint",
+          "text": "You're receiving this email because you subscribed to our newsletter. If you no longer wish to receive these emails, you can {{unsubscribe}} at any time.",
+          "align": "center"
+        }
+      ],
+      "style": {
+        "paddingX": 24,
+        "paddingY": 32,
+        "background": "surface"
+      }
+    }
+  ],
+  "catalog": {
+    "items": [
+      {
+        "id": "prod-001",
+        "title": "Classic Leather Tote",
+        "price": "$149.00",
+        "image": "https://acme.example.com/products/tote.jpg",
+        "url": "https://acme.example.com/products/classic-leather-tote"
+      },
+      {
+        "id": "prod-002",
+        "title": "Minimalist Wallet",
+        "price": "$49.00",
+        "image": "https://acme.example.com/products/wallet.jpg",
+        "url": "https://acme.example.com/products/minimalist-wallet"
+      },
+      {
+        "id": "prod-003",
+        "title": "Canvas Backpack",
+        "price": "$89.00",
+        "image": "https://acme.example.com/products/backpack.jpg",
+        "url": "https://acme.example.com/products/canvas-backpack"
+      },
+      {
+        "id": "prod-004",
+        "title": "Brass Key Ring",
+        "price": "$24.00",
+        "image": "https://acme.example.com/products/keyring.jpg",
+        "url": "https://acme.example.com/products/brass-key-ring"
+      }
+    ]
+  }
+}

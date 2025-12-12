@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Amazing Product One - TestBrand</title>
+    <meta property="og:image" content="/images/product-1-large.jpg" />
+  </head>
+  <body>
+    <div class="product-detail">
+      <img
+        src="/images/product-1-large.jpg"
+        alt="Amazing Product One"
+        class="product-image"
+      />
+      <h1 class="product-title">Amazing Product One</h1>
+      <p class="price">$99.99</p>
+      <button>Add to Cart</button>
+    </div>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "Amazing Product One",
+        "image": "/images/product-1-large.jpg",
+        "url": "/products/product-1",
+        "offers": {
+          "@type": "Offer",
+          "price": "99.99",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+  </body>
+</html>

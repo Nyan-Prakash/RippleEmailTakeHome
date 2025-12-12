@@ -1,0 +1,22 @@
+{
+  "campaignType": "sale",
+  "goal": "Drive immediate purchases with a time-sensitive discount offer, showcasing best-selling products to maximize conversion",
+  "sections": [
+    {
+      "type": "header"
+    },
+    {
+      "type": "hero"
+    },
+    {
+      "type": "productGrid",
+      "count": 4
+    },
+    {
+      "type": "trustBar"
+    },
+    {
+      "type": "footer"
+    }
+  ]
+}

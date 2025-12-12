@@ -1,0 +1,9 @@
+{
+  "type": "sale",
+  "tone": "urgent",
+  "offer": "25% off sitewide for 48 hours only",
+  "urgency": "Limited time offer - ends Sunday at midnight",
+  "audience": "Existing customers and newsletter subscribers",
+  "ctaText": "Shop the Sale",
+  "notes": "Emphasize the time-limited nature of the sale and highlight best-selling products"
+}
