@@ -1,334 +1,326 @@
 import type { BrandContext } from "../schemas/brand";
-import type { CampaignIntent } from "./schemas/campaignIntent";
-import type { EmailPlan } from "./schemas/emailPlan";
-import { EmailSpecSchema, type EmailSpec } from "../schemas/emailSpec";
-import { createLLMError, LLM_ERROR_MESSAGES } from "./errors";
+import type { CampaignIntent } from "../schemas/campaign";
+import type { EmailPlan } from "../schemas/plan";
+import type { EmailSpec } from "../schemas/emailSpec";
+import { EmailSpecSchema } from "../schemas/emailSpec";
+import { createLLMError } from "./errors";
+import { validateEmailSpecStructure } from "../validators/emailSpec";
+import type { ValidationIssue } from "../validators/emailSpec";
+
+const MAX_ATTEMPTS = 3;
 
 /**
  * LLM client interface for dependency injection
  */
 export interface GenerateEmailSpecLLMClient {
-  completeJson(input: {
-    system: string;
-    user: string;
-    timeoutMs: number;
-    temperature: number;
-  }): Promise<string>;
-}
-
-/**
- * Default OpenAI implementation
- */
-async function defaultLLMClient(input: {
-  system: string;
-  user: string;
-  timeoutMs: number;
-  temperature: number;
-}): Promise<string> {
-  const { default: OpenAI } = await import("openai");
-
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw createLLMError(
-      "LLM_CONFIG_MISSING",
-      LLM_ERROR_MESSAGES.LLM_CONFIG_MISSING
-    );
-  }
-
-  const client = new OpenAI({ apiKey, timeout: input.timeoutMs });
-
-  const response = await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: input.system },
-      { role: "user", content: input.user },
-    ],
-    temperature: input.temperature,
-    max_tokens: 3000,
-    response_format: { type: "json_object" },
-  });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw createLLMError("LLM_FAILED", LLM_ERROR_MESSAGES.LLM_FAILED);
-  }
-
-  return content;
-}
-
-/**
- * Build system prompt for email spec generation
- */
-function buildSystemPrompt(
-  brandContext: BrandContext,
-  intent: CampaignIntent,
-  plan: EmailPlan
-): string {
-  const { brand, catalog } = brandContext;
-
-  // Build catalog summary
-  let catalogSummary = "No products in catalog.";
-  if (catalog.length > 0) {
-    catalogSummary = `${catalog.length} products available:\n`;
-    catalogSummary += catalog
-      .slice(0, 20)
-      .map((p) => `- ID: ${p.id}, Title: ${p.title}, Price: ${p.price}`)
-      .join("\n");
-    if (catalog.length > 20) {
-      catalogSummary += `\n... and ${catalog.length - 20} more products`;
-    }
-  }
-
-  // Build plan sections summary
-  const planSections = plan.sections
-    .map(
-      (s) =>
-        `- ${s.type}: ${s.purpose}${s.headline ? ` ("${s.headline}")` : ""}`
-    )
-    .join("\n");
-
-  return `You are an expert email spec generator. You create canonical, renderer-ready JSON specifications for emails.
-
-CRITICAL: You output ONLY EmailSpec JSON - NO HTML, NO MJML, NO markup of any kind.
-
-Brand Information:
-- Name: ${brand.name}
-- Website: ${brand.website}
-- Voice: ${brand.voiceHints?.join(", ") || "neutral"}
-- Colors: Primary ${brand.colors.primary}, Background ${brand.colors.background}, Text ${brand.colors.text}
-- Fonts: Heading ${brand.fonts.heading}, Body ${brand.fonts.body}
-
-${catalogSummary}
-
-Campaign Intent:
-- Type: ${intent.type}
-- Goal: ${intent.goal}
-- Tone: ${intent.tone}
-- CTA: ${intent.cta.primary}
-
-Email Plan Structure:
-Subject: ${plan.subject.primary}
-Preheader: ${plan.preheader}
-Template: ${plan.layout.template}
-
-Sections:
-${planSections}
-
-Selected Products: ${plan.selectedProducts.length} products
-
-CRITICAL RULES:
-1. NO HTML/MJML: Output only JSON. Text fields must NOT contain HTML tags.
-2. REAL PRODUCTS ONLY: Use only products from the catalog above. DO NOT invent products.
-3. ALLOWED SECTION TYPES: "header", "hero", "feature", "productGrid", "testimonial", "trustBar", "footer"
-4. ALLOWED BLOCK TYPES: "logo", "heading", "paragraph", "image", "button", "productCard", "divider", "spacer", "smallPrint"
-5. REQUIRED: Must include ONE "header" section and ONE "footer" section
-6. REQUIRED: Must include at least ONE "button" block somewhere (for CTA)
-7. PRODUCT CARDS: Use "productCard" blocks only if catalog has products. Each productRef must match a catalog item ID.
-8. TEXT SAFETY: Block text fields must not contain < or > characters
-
-Return ONLY valid JSON matching this exact schema:
-
-{
-  "meta": {
-    "subject": "string (5-150 chars)",
-    "preheader": "string (10-200 chars)"
-  },
-  "theme": {
-    "containerWidth": 600,
-    "backgroundColor": "#FFFFFF",
-    "surfaceColor": "#F5F5F5",
-    "textColor": "#111111",
-    "mutedTextColor": "#666666",
-    "primaryColor": "#111111",
-    "font": {
-      "heading": "string",
-      "body": "string"
-    },
-    "button": {
-      "radius": 8,
-      "style": "solid" | "outline"
-    }
-  },
-  "sections": [
-    {
-      "id": "string (unique)",
-      "type": "header" | "hero" | "feature" | "productGrid" | "testimonial" | "trustBar" | "footer",
-      "layout": {
-        "variant": "single" | "twoColumn" | "grid"
-      },
-      "blocks": [
-        { "type": "logo", "src": "url", "href": "url (optional)", "align": "left" | "center" },
-        { "type": "heading", "text": "string (no HTML)", "level": 1 | 2 | 3, "align": "left" | "center" },
-        { "type": "paragraph", "text": "string (no HTML)", "align": "left" | "center" },
-        { "type": "image", "src": "url", "alt": "string", "href": "url (optional)" },
-        { "type": "button", "text": "string", "href": "url", "align": "left" | "center" },
-        { "type": "productCard", "productRef": "catalog product ID" },
-        { "type": "divider" },
-        { "type": "spacer", "size": 4-64 },
-        { "type": "smallPrint", "text": "string (no HTML)" }
-      ],
-      "style": {
-        "paddingX": 0-64,
-        "paddingY": 0-64,
-        "background": "brand" | "surface" | "transparent"
-      }
-    }
-  ], // min 3 max 10
-  "catalog": {
-    "items": [
-      {
-        "id": "string",
-        "title": "string",
-        "price": "string",
-        "image": "url",
-        "url": "url"
-      }
-    ]
-  }
-}
-
-Guidelines:
-- Use subject/preheader from plan
-- Create 3-10 sections matching the plan structure
-- Use brand colors/fonts in theme
-- Map plan sections to spec sections (maintain intent and structure)
-- For productCard blocks, use selectedProducts from plan
-- Ensure text is clean (no HTML tags)
-- Return ONLY the JSON object, no markdown, no extra text`;
-}
-
-/**
- * Build user prompt for email spec generation
- */
-function buildUserPrompt(): string {
-  return `Generate the canonical EmailSpec JSON based on the brand context, campaign intent, and email plan provided above. Remember: output JSON only, no HTML or MJML.`;
+  chat: {
+    completions: {
+      create: (params: {
+        model: string;
+        messages: Array<{ role: string; content: string }>;
+        temperature: number;
+        max_tokens: number;
+        response_format: { type: string };
+      }) => Promise<{
+        choices: Array<{
+          message: {
+            content: string | null;
+          };
+        }>;
+      }>;
+    };
+  };
 }
 
 /**
  * Generate EmailSpec from brand context, intent, and plan
+ * 
+ * Uses a multi-attempt repair loop:
+ * - Attempt 1: temperature 0.7, Zod errors only
+ * - Attempt 2: temperature 0.5, Zod + structural errors
+ * - Attempt 3: temperature 0.3, Zod + structural + explicit fix instructions
+ * 
+ * @param args - Generation arguments
+ * @returns EmailSpec and warnings
  */
 export async function generateEmailSpec(args: {
   brandContext: BrandContext;
   intent: CampaignIntent;
   plan: EmailPlan;
-  deps?: {
-    llm?: GenerateEmailSpecLLMClient;
-  };
-}): Promise<EmailSpec> {
-  const { brandContext, intent, plan, deps } = args;
+  llmClient?: GenerateEmailSpecLLMClient;
+}): Promise<{ spec: EmailSpec; warnings: ValidationIssue[] }> {
+  const { brandContext, intent, plan, llmClient } = args;
 
-  // Get LLM client (dependency injection for testing)
-  const llmClient = deps?.llm?.completeJson ?? defaultLLMClient;
+  if (!llmClient) {
+    throw createLLMError("LLM_CONFIG_MISSING", "LLM client is required");
+  }
 
-  // Build prompts
-  const systemPrompt = buildSystemPrompt(brandContext, intent, plan);
-  const userPrompt = buildUserPrompt();
+  let previousSpec: string | null = null;
+  let previousErrors: string[] = [];
+  const errorHistory = new Set<string>();
 
-  let rawOutput: string;
-
-  try {
-    // Call LLM
-    rawOutput = await llmClient({
-      system: systemPrompt,
-      user: userPrompt,
-      timeoutMs: 15000,
-      temperature: 0.7,
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const temperature = getTemperatureForAttempt(attempt);
+    
+    const systemPrompt = buildSystemPrompt();
+    const userPrompt = buildUserPrompt({
+      brandContext,
+      intent,
+      plan,
+      attempt,
+      previousSpec,
+      previousErrors,
     });
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("timeout")) {
-      throw createLLMError(
-        "LLM_TIMEOUT",
-        LLM_ERROR_MESSAGES.LLM_TIMEOUT,
-        error
-      );
+
+    try {
+      const response = await llmClient.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature,
+        max_tokens: 3000,
+        response_format: { type: "json_object" },
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw createLLMError("LLM_OUTPUT_INVALID", "LLM returned empty response");
+      }
+
+      // Parse JSON
+      let parsedJson: unknown;
+      try {
+        parsedJson = JSON.parse(content);
+      } catch (parseError) {
+        previousSpec = content;
+        previousErrors = [`Invalid JSON: ${(parseError as Error).message}`];
+        
+        if (attempt === MAX_ATTEMPTS) {
+          throw createLLMError(
+            "LLM_OUTPUT_INVALID",
+            `Failed to parse JSON after ${MAX_ATTEMPTS} attempts`,
+            parseError
+          );
+        }
+        continue;
+      }
+
+      // Validate with Zod schema
+      const zodResult = EmailSpecSchema.safeParse(parsedJson);
+      
+      if (!zodResult.success) {
+        const zodErrors = zodResult.error.issues.map(
+          (err) => `${err.path.join(".")}: ${err.message}`
+        );
+        
+        previousSpec = content;
+        previousErrors = zodErrors;
+        
+        // Check for repeated errors
+        const errorSignature = zodErrors.join("|");
+        if (errorHistory.has(errorSignature)) {
+          throw createLLMError(
+            "LLM_OUTPUT_INVALID",
+            `Same validation errors appeared multiple times: ${zodErrors.join("; ")}`
+          );
+        }
+        errorHistory.add(errorSignature);
+        
+        if (attempt === MAX_ATTEMPTS) {
+          throw createLLMError(
+            "LLM_OUTPUT_INVALID",
+            `Zod validation failed after ${MAX_ATTEMPTS} attempts: ${zodErrors.join("; ")}`
+          );
+        }
+        continue;
+      }
+
+      const spec = zodResult.data;
+
+      // Structural validation
+      const structuralResult = validateEmailSpecStructure({
+        spec,
+        brandContext,
+        intent,
+        plan,
+      });
+
+      const blockingErrors = structuralResult.issues.filter(i => i.severity === "error");
+      const warnings = structuralResult.issues.filter(i => i.severity === "warning");
+
+      if (blockingErrors.length > 0) {
+        const errorMessages = blockingErrors.map(
+          issue => `[${issue.code}] ${issue.message}${issue.path ? ` (${issue.path})` : ""}`
+        );
+        
+        previousSpec = content;
+        previousErrors = errorMessages;
+        
+        if (attempt === MAX_ATTEMPTS) {
+          throw createLLMError(
+            "LLM_OUTPUT_INVALID",
+            `Structural validation failed after ${MAX_ATTEMPTS} attempts: ${errorMessages.join("; ")}`
+          );
+        }
+        
+        // Check for repeated structural errors (allow one retry per unique error)
+        const errorSignature = blockingErrors.map(e => e.code).join("|");
+        if (errorHistory.has(errorSignature)) {
+          throw createLLMError(
+            "LLM_OUTPUT_INVALID",
+            `Same structural errors appeared multiple times: ${errorMessages.join("; ")}`
+          );
+        }
+        errorHistory.add(errorSignature);
+        
+        continue;
+      }
+
+      // Success! Return spec with warnings
+      return { spec, warnings };
+
+    } catch (error) {
+      if (error instanceof Error && error.name === "LLMError") {
+        throw error;
+      }
+      
+      if (attempt === MAX_ATTEMPTS) {
+        throw createLLMError(
+          "LLM_FAILED",
+          `Failed to generate EmailSpec after ${MAX_ATTEMPTS} attempts`,
+          error
+        );
+      }
+      
+      // Continue to next attempt
+      previousErrors = [`Request failed: ${(error as Error).message}`];
     }
-    throw createLLMError("LLM_FAILED", LLM_ERROR_MESSAGES.LLM_FAILED, error);
   }
 
-  // Parse JSON
-  let parsedOutput: unknown;
-  try {
-    parsedOutput = JSON.parse(rawOutput);
-  } catch (error) {
-    throw createLLMError(
-      "LLM_OUTPUT_INVALID",
-      "Failed to parse LLM output as JSON",
-      error
-    );
-  }
-
-  // Validate output with schema
-  const parseResult = EmailSpecSchema.safeParse(parsedOutput);
-
-  if (parseResult.success) {
-    return parseResult.data;
-  }
-
-  // Log validation error for debugging
-  console.error("[generateEmailSpec] Initial validation failed:", {
-    output: parsedOutput,
-    error: parseResult.error.format(),
-  });
-
-  // First validation failed - attempt repair retry
-  try {
-    const repairPrompt = `The previous JSON output had validation errors. Fix it to match the exact schema.
-
-Previous output:
-${JSON.stringify(parsedOutput, null, 2)}
-
-Validation errors:
-${JSON.stringify(parseResult.error.format(), null, 2)}
-
-Remember the critical rules:
-- Must include ONE "header" and ONE "footer" section
-- Must include at least ONE "button" block
-- All productCard productRef values must match catalog item IDs
-${
-  brandContext.catalog.length === 0
-    ? "- Catalog is EMPTY: NO productCard blocks allowed"
-    : ""
+  throw createLLMError(
+    "LLM_OUTPUT_INVALID",
+    "Failed to generate valid EmailSpec after all attempts"
+  );
 }
-- NO HTML in text fields (no < or > characters)
-- Only use allowed section types: header, hero, feature, productGrid, testimonial, trustBar, footer
-- Only use allowed block types: logo, heading, paragraph, image, button, productCard, divider, spacer, smallPrint
 
-Return ONLY corrected valid JSON matching the EmailSpec schema.`;
-
-    const repairedOutput = await llmClient({
-      system: buildSystemPrompt(brandContext, intent, plan),
-      user: repairPrompt,
-      timeoutMs: 15000,
-      temperature: 0.3,
-    });
-
-    const repairedParsed = JSON.parse(repairedOutput);
-    const repairedResult = EmailSpecSchema.safeParse(repairedParsed);
-
-    if (repairedResult.success) {
-      return repairedResult.data;
-    }
-
-    // Repair failed
-    console.error("[generateEmailSpec] Repair validation failed:", {
-      output: repairedParsed,
-      error: repairedResult.error.format(),
-    });
-
-    throw createLLMError(
-      "LLM_OUTPUT_INVALID",
-      LLM_ERROR_MESSAGES.LLM_OUTPUT_INVALID,
-      repairedResult.error
-    );
-  } catch (error) {
-    // If repair itself fails, throw invalid output error
-    if (error instanceof Error && error.name === "LLMError") {
-      throw error;
-    }
-    throw createLLMError(
-      "LLM_OUTPUT_INVALID",
-      LLM_ERROR_MESSAGES.LLM_OUTPUT_INVALID,
-      error
-    );
+/**
+ * Get temperature for attempt number
+ */
+function getTemperatureForAttempt(attempt: number): number {
+  switch (attempt) {
+    case 1:
+      return 0.7;
+    case 2:
+      return 0.5;
+    case 3:
+      return 0.3;
+    default:
+      return 0.3;
   }
+}
+
+/**
+ * Build system prompt
+ */
+function buildSystemPrompt(): string {
+  return `You are an expert email marketing designer and copywriter.
+
+Your task is to generate a complete EmailSpec JSON that defines the structure, content, and styling of a marketing email.
+
+The EmailSpec must:
+1. Follow the exact JSON schema provided
+2. Include all required fields
+3. Use valid hex colors (e.g., #FF5733)
+4. Reference only products that exist in the catalog
+5. Include proper header/footer sections
+6. Have at least one CTA button
+7. Include {{unsubscribe}} token in footer
+
+Generate ONLY valid JSON. Do not include explanations or markdown.`;
+}
+
+/**
+ * Build user prompt with repair instructions if needed
+ */
+function buildUserPrompt(args: {
+  brandContext: BrandContext;
+  intent: CampaignIntent;
+  plan: EmailPlan;
+  attempt: number;
+  previousSpec: string | null;
+  previousErrors: string[];
+}): string {
+  const { brandContext, intent, plan, attempt, previousSpec, previousErrors } = args;
+
+  let prompt = "";
+
+  if (attempt === 1) {
+    // First attempt - standard generation
+    prompt = `Generate an EmailSpec for the following campaign:
+
+BRAND CONTEXT:
+${JSON.stringify(brandContext, null, 2)}
+
+CAMPAIGN INTENT:
+${JSON.stringify(intent, null, 2)}
+
+EMAIL PLAN:
+${JSON.stringify(plan, null, 2)}
+
+REQUIREMENTS:
+- Header section must be first
+- Footer section must be last
+- Include at least one button with non-empty text and href
+- All productCard blocks must reference products in the catalog
+- Footer must include {{unsubscribe}} token in a smallPrint block
+- Section IDs must be unique
+- Use brand colors and fonts from brand context
+${intent.ctaText ? `- Primary CTA should be similar to: "${intent.ctaText}"` : ""}
+
+Generate a complete EmailSpec JSON following the schema.`;
+
+  } else {
+    // Repair attempt
+    prompt = `The previous EmailSpec had validation errors. Please fix them.
+
+PREVIOUS SPEC (INVALID):
+${previousSpec || "N/A"}
+
+VALIDATION ERRORS:
+${previousErrors.map((err, i) => `${i + 1}. ${err}`).join("\n")}
+
+BRAND CONTEXT:
+${JSON.stringify(brandContext, null, 2)}
+
+CAMPAIGN INTENT:
+${JSON.stringify(intent, null, 2)}
+
+EMAIL PLAN:
+${JSON.stringify(plan, null, 2)}
+
+CRITICAL REPAIR INSTRUCTIONS (Attempt ${attempt}/${MAX_ATTEMPTS}):
+- Do NOT add new sections beyond what the plan specifies
+- Do NOT invent products that aren't in the catalog
+- Fix ONLY the errors listed above
+- Maintain the overall structure from the previous attempt
+- Ensure header is first section, footer is last section
+- Include at least one button with valid text and href
+- Footer must have {{unsubscribe}} token in smallPrint block
+- All section IDs must be unique
+- All productCard blocks must reference catalog items
+${intent.ctaText ? `- Button text should match: "${intent.ctaText}"` : ""}
+
+${attempt === 3 ? `FINAL ATTEMPT - Be extra careful:
+- Double-check every product reference exists in catalog
+- Verify header is sections[0] and footer is sections[last]
+- Confirm button has both text and href properties
+- Verify all colors are valid hex codes
+- Check that all required schema fields are present` : ""}
+
+Generate the corrected EmailSpec JSON.`;
+  }
+
+  return prompt;
 }

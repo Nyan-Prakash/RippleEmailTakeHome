@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { BrandContextSchema } from "../../../../lib/schemas/brand";
-import { CampaignIntentSchema } from "../../../../lib/llm/schemas/campaignIntent";
-import { EmailPlanSchema } from "../../../../lib/llm/schemas/emailPlan";
-import { generateEmailSpec } from "../../../../lib/llm/generateEmailSpec";
-import { LLMError } from "../../../../lib/llm/errors";
+import { BrandContextSchema } from "@/lib/schemas/brand";
+import { CampaignIntentSchema } from "@/lib/schemas/campaign";
+import { EmailPlanSchema } from "@/lib/schemas/plan";
+import { generateEmailSpec } from "@/lib/llm/generateEmailSpec";
+import { LLMError } from "@/lib/llm/errors";
+import OpenAI from "openai";
 
 /**
- * Request schema for email spec endpoint
+ * Request schema
  */
 const RequestSchema = z.object({
   brandContext: BrandContextSchema,
@@ -16,100 +17,128 @@ const RequestSchema = z.object({
 });
 
 /**
- * Map LLM error codes to HTTP status codes
- */
-function getStatusCode(errorCode: string): number {
-  const statusMap: Record<string, number> = {
-    INVALID_INPUT: 400,
-    INVALID_PROMPT: 400,
-    LLM_CONFIG_MISSING: 500,
-    LLM_FAILED: 502,
-    LLM_TIMEOUT: 504,
-    LLM_OUTPUT_INVALID: 502,
-  };
-  return statusMap[errorCode] ?? 500;
-}
-
-/**
  * POST /api/email/spec
- * Generates canonical EmailSpec JSON from brand context, campaign intent, and email plan
+ * 
+ * Generate EmailSpec from brand context, intent, and plan
+ * 
+ * @returns EmailSpec with warnings array if successful
  */
 export async function POST(request: NextRequest) {
   try {
     // Parse and validate request body
     const body = await request.json();
-    const validationResult = RequestSchema.safeParse(body);
+    const parseResult = RequestSchema.safeParse(body);
 
-    if (!validationResult.success) {
+    if (!parseResult.success) {
       return NextResponse.json(
         {
           error: {
-            code: "INVALID_INPUT",
-            message: "Invalid request format",
+            code: "INVALID_REQUEST",
+            message: "Invalid request body",
+            details: parseResult.error.issues.map((issue) => ({
+              path: issue.path.join("."),
+              message: issue.message,
+            })),
           },
         },
         { status: 400 }
       );
     }
 
-    const { brandContext, intent, plan } = validationResult.data;
+    const { brandContext, intent, plan } = parseResult.data;
 
-    // Set timeout for LLM call (15 seconds)
+    // Check for OpenAI API key
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "LLM_CONFIG_MISSING",
+            message: "OpenAI API key not configured",
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // Initialize OpenAI client
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Set timeout for LLM request
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
-      // Generate email spec
-      const spec = await generateEmailSpec({
+      // Generate EmailSpec with multi-attempt repair loop
+      const { spec, warnings } = await generateEmailSpec({
         brandContext,
         intent,
         plan,
+        llmClient: openai as any,
       });
 
       clearTimeout(timeoutId);
 
-      return NextResponse.json({ spec }, { status: 200 });
+      // Return spec with warnings if any
+      const response: any = { spec };
+      if (warnings.length > 0) {
+        response.warnings = warnings;
+      }
+
+      return NextResponse.json(response, { status: 200 });
+
     } catch (error) {
       clearTimeout(timeoutId);
 
-      if (controller.signal.aborted) {
+      if (error instanceof LLMError) {
+        const statusCode = getStatusCodeForLLMError(error.code);
         return NextResponse.json(
           {
             error: {
-              code: "LLM_TIMEOUT",
-              message: "Request timed out. Please try again.",
+              code: error.code,
+              message: error.message,
             },
           },
-          { status: 504 }
+          { status: statusCode }
         );
       }
 
       throw error;
     }
-  } catch (error) {
-    // Handle LLM errors
-    if (error instanceof LLMError) {
-      return NextResponse.json(
-        {
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        },
-        { status: getStatusCode(error.code) }
-      );
-    }
 
-    // Handle unexpected errors (no stack trace leak)
+  } catch (error) {
     console.error("Unexpected error in /api/email/spec:", error);
+
+    // Generic error response (no stack trace leak)
     return NextResponse.json(
       {
         error: {
-          code: "INTERNAL",
+          code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
         },
       },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Map LLM error codes to HTTP status codes
+ */
+function getStatusCodeForLLMError(code: string): number {
+  switch (code) {
+    case "INVALID_INPUT":
+    case "INVALID_PROMPT":
+      return 400;
+    case "LLM_CONFIG_MISSING":
+      return 500;
+    case "LLM_TIMEOUT":
+      return 504;
+    case "LLM_OUTPUT_INVALID":
+      return 502;
+    case "LLM_FAILED":
+    default:
+      return 500;
   }
 }
