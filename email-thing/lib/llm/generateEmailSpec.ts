@@ -196,6 +196,21 @@ export async function generateEmailSpec(args: {
         throw error;
       }
       
+      // Check for timeout errors (OpenAI SDK throws various timeout-related errors)
+      if (
+        error instanceof Error &&
+        (error.message.includes("timeout") ||
+          error.message.includes("timed out") ||
+          error.name === "TimeoutError" ||
+          error.name === "APIConnectionTimeoutError")
+      ) {
+        throw createLLMError(
+          "LLM_TIMEOUT",
+          "LLM request timed out",
+          error
+        );
+      }
+      
       if (attempt === MAX_ATTEMPTS) {
         throw createLLMError(
           "LLM_FAILED",

@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
 
     const { brandContext, prompt } = validationResult.data;
 
-    // Set timeout for LLM call (15 seconds)
+    // Set timeout for LLM call (50 seconds - slightly more than LLM client timeout)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 50000);
 
     try {
       // Parse campaign intent

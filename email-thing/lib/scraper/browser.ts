@@ -44,21 +44,36 @@ export async function newPage(options?: {
     userAgent:
       options?.userAgent ||
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    viewport: {
+      width: 1920,
+      height: 1080,
+    },
   });
 
   // Set default timeouts
   page.setDefaultTimeout(options?.timeout ?? 30000);
   page.setDefaultNavigationTimeout(options?.timeout ?? 30000);
 
-  // Block heavy resources to speed up loading (but keep CSS/fonts/scripts)
+  // Block heavy resources to speed up loading (but keep images for product scraping)
+  // Only block video/audio media
   await page.route("**/*", (route) => {
     const resourceType = route.request().resourceType();
-    // Block media, but allow everything else including CSS, fonts, scripts
-    if (resourceType === "media") {
+    const url = route.request().url();
+
+    // Block video and audio media, but ALLOW images
+    if (resourceType === "media" && (url.includes(".mp4") || url.includes(".webm") || url.includes(".mp3") || url.includes(".wav"))) {
       route.abort();
     } else {
       route.continue();
     }
+  });
+
+  // Enable JavaScript execution
+  await page.addInitScript(() => {
+    // Prevent detection as headless browser
+    Object.defineProperty(navigator, 'webdriver', {
+      get: () => false,
+    });
   });
 
   return page;

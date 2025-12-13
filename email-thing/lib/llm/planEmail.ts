@@ -208,15 +208,22 @@ export async function planEmail(args: {
   let rawOutput: string;
 
   try {
-    // Call LLM
+    // Call LLM with 45 second timeout
     rawOutput = await llmClient({
       system: systemPrompt,
       user: userPrompt,
-      timeoutMs: 15000,
+      timeoutMs: 45000,
       temperature: 0.7,
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("timeout")) {
+    // Check for timeout errors (OpenAI SDK throws various timeout-related errors)
+    if (
+      error instanceof Error &&
+      (error.message.includes("timeout") ||
+        error.message.includes("timed out") ||
+        error.name === "TimeoutError" ||
+        error.name === "APIConnectionTimeoutError")
+    ) {
       throw createLLMError(
         "LLM_TIMEOUT",
         LLM_ERROR_MESSAGES.LLM_TIMEOUT,
@@ -281,7 +288,7 @@ Return ONLY corrected valid JSON matching the schema.`;
     const repairedOutput = await llmClient({
       system: buildSystemPrompt(brandContext, intent),
       user: repairPrompt,
-      timeoutMs: 15000,
+      timeoutMs: 45000,
       temperature: 0.3,
     });
 

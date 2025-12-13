@@ -19,6 +19,7 @@ import { extractVoiceSnippets } from "./extract/voice";
 import {
   extractProductsFromJsonLd,
   extractProductFromDom,
+  extractProductsFromGrid,
   mergeAndDedupeProducts,
   type ProductCandidate,
 } from "./extract/products";
@@ -71,8 +72,14 @@ export async function scrapeBrand(brandUrl: string): Promise<BrandContext> {
 
     // 6. Collect products from homepage
     const allProducts: ProductCandidate[] = [];
-    const homepageProducts = extractProductsFromJsonLd($, homepageUrl);
-    allProducts.push(...homepageProducts);
+
+    // Try JSON-LD first
+    const homepageJsonProducts = extractProductsFromJsonLd($, homepageUrl);
+    allProducts.push(...homepageJsonProducts);
+
+    // Also try grid extraction for homepage
+    const homepageGridProducts = extractProductsFromGrid($, homepageUrl);
+    allProducts.push(...homepageGridProducts);
 
     // 7. Optionally load collection page (if time permits)
     if (selected.collection && Date.now() - startTime < timeout - 3000) {
@@ -83,11 +90,20 @@ export async function scrapeBrand(brandUrl: string): Promise<BrandContext> {
           { timeout: 3000 }
         );
         const $collection = load(collectionHtml);
-        const collectionProducts = extractProductsFromJsonLd(
+
+        // Extract products using multiple strategies
+        const collectionJsonProducts = extractProductsFromJsonLd(
           $collection,
           new URL(selected.collection)
         );
-        allProducts.push(...collectionProducts);
+        allProducts.push(...collectionJsonProducts);
+
+        // Try grid extraction for collection page
+        const collectionGridProducts = extractProductsFromGrid(
+          $collection,
+          new URL(selected.collection)
+        );
+        allProducts.push(...collectionGridProducts);
 
         // Update product links from collection
         const collectionLinks = discoverLinks(
@@ -95,7 +111,7 @@ export async function scrapeBrand(brandUrl: string): Promise<BrandContext> {
           new URL(selected.collection)
         );
         selected.products.push(
-          ...collectionLinks.products.slice(0, 4).map((c) => c.url)
+          ...collectionLinks.products.slice(0, 6).map((c) => c.url)
         );
       } catch {
         // Ignore collection errors

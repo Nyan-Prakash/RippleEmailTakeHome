@@ -60,14 +60,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize OpenAI client
+    // Initialize OpenAI client with 45 second timeout
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
+      timeout: 45000,
     });
 
-    // Set timeout for LLM request
+    // Set timeout for LLM request (50 seconds - slightly more than LLM client timeout)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 50000);
 
     try {
       // Generate EmailSpec with multi-attempt repair loop

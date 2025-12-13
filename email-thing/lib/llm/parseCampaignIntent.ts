@@ -25,7 +25,7 @@ export class OpenAIClient implements LLMClient {
   private client: OpenAI;
 
   constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey });
+    this.client = new OpenAI({ apiKey, timeout: 45000 });
   }
 
   async generateJSON(params: {
@@ -197,7 +197,14 @@ export async function parseCampaignIntent(
       maxTokens: 1000,
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("timeout")) {
+    // Check for timeout errors (OpenAI SDK throws various timeout-related errors)
+    if (
+      error instanceof Error &&
+      (error.message.includes("timeout") ||
+        error.message.includes("timed out") ||
+        error.name === "TimeoutError" ||
+        error.name === "APIConnectionTimeoutError")
+    ) {
       throw createLLMError(
         "LLM_TIMEOUT",
         LLM_ERROR_MESSAGES.LLM_TIMEOUT,

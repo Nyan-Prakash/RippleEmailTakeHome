@@ -12,7 +12,7 @@ export interface ColorPalette {
 
 /**
  * Extract brand colors from page
- * Uses CSS variables and computed styles
+ * Enhanced with multiple detection strategies
  */
 export async function extractColors(
   page: Page,
@@ -28,24 +28,45 @@ export async function extractColors(
     // Extract CSS variable definitions
     const cssVars = extractCssVariables($);
 
+    // Extract colors from meta tags
+    const metaColors = extractMetaColors($);
+
     // Extract computed styles for prominent elements
     const computed = await extractComputedColors(page);
 
-    // Combine and select best candidates
-    const primary =
-      selectPrimaryColor([
-        cssVars.primary,
-        cssVars.accent,
-        computed.buttonBg,
-      ]) || defaults.primary;
+    // Extract colors from prominent CTAs and links
+    const ctaColors = await extractCTAColors(page);
 
-    const background = computed.bodyBg || defaults.background;
-    const text = computed.bodyText || defaults.text;
+    // Analyze all images for dominant colors
+    const imageColors = await extractDominantColorsFromImages(page);
+
+    // Combine and select best candidates with prioritization
+    const primaryCandidates = [
+      cssVars.primary,
+      metaColors.themeColor,
+      cssVars.accent,
+      ctaColors.primaryCTA,
+      imageColors.dominant,
+      computed.buttonBg,
+      computed.linkColor,
+    ];
+
+    const primary = selectPrimaryColor(primaryCandidates) || defaults.primary;
+
+    const background =
+      normalizeColor(cssVars.background || "") ||
+      normalizeColor(computed.bodyBg || "") ||
+      defaults.background;
+
+    const text =
+      normalizeColor(cssVars.text || "") ||
+      normalizeColor(computed.bodyText || "") ||
+      defaults.text;
 
     return {
       primary: normalizeColor(primary),
-      background: normalizeColor(background),
-      text: normalizeColor(text),
+      background,
+      text,
     };
   } catch {
     return defaults;
@@ -58,8 +79,10 @@ export async function extractColors(
 function extractCssVariables($: CheerioAPI): {
   primary?: string;
   accent?: string;
+  background?: string;
+  text?: string;
 } {
-  const vars: { primary?: string; accent?: string } = {};
+  const vars: { primary?: string; accent?: string; background?: string; text?: string } = {};
 
   $("style").each((_, elem) => {
     const css = $(elem).html() || "";
@@ -70,23 +93,60 @@ function extractCssVariables($: CheerioAPI): {
       const declarations = rootMatch[1];
 
       // Extract --primary, --accent, --primary-color, etc.
-      const primaryMatch = declarations.match(
-        /--(?:primary|brand|accent)(?:-color)?:\s*([^;]+);/i
-      );
-      if (primaryMatch) {
-        vars.primary = primaryMatch[1].trim();
+      const primaryPatterns = [
+        /--(?:primary|brand|main)(?:-color)?:\s*([^;]+);/i,
+        /--color-primary:\s*([^;]+);/i,
+        /--brand-color:\s*([^;]+);/i,
+      ];
+      for (const pattern of primaryPatterns) {
+        const match = declarations.match(pattern);
+        if (match) {
+          vars.primary = match[1].trim();
+          break;
+        }
       }
 
+      // Extract accent
       const accentMatch = declarations.match(
-        /--accent(?:-color)?:\s*([^;]+);/i
+        /--(?:accent|secondary)(?:-color)?:\s*([^;]+);/i
       );
       if (accentMatch) {
         vars.accent = accentMatch[1].trim();
+      }
+
+      // Extract background
+      const bgMatch = declarations.match(
+        /--(?:background|bg)(?:-color)?:\s*([^;]+);/i
+      );
+      if (bgMatch) {
+        vars.background = bgMatch[1].trim();
+      }
+
+      // Extract text
+      const textMatch = declarations.match(
+        /--(?:text|foreground|fg)(?:-color)?:\s*([^;]+);/i
+      );
+      if (textMatch) {
+        vars.text = textMatch[1].trim();
       }
     }
   });
 
   return vars;
+}
+
+/**
+ * Extract colors from meta tags
+ */
+function extractMetaColors($: CheerioAPI): {
+  themeColor?: string;
+} {
+  const themeColor = $('meta[name="theme-color"]').attr("content") ||
+                      $('meta[name="msapplication-TileColor"]').attr("content");
+
+  return {
+    themeColor: themeColor || undefined,
+  };
 }
 
 /**
@@ -96,29 +156,127 @@ async function extractComputedColors(page: Page): Promise<{
   bodyBg?: string;
   bodyText?: string;
   buttonBg?: string;
+  linkColor?: string;
 }> {
   try {
     const colors = await page.evaluate(() => {
       const body = document.body;
       const bodyStyles = window.getComputedStyle(body);
 
-      // Find a prominent button or CTA
-      const button =
-        document.querySelector("button") ||
-        document.querySelector('a[class*="button"]') ||
-        document.querySelector('a[class*="btn"]') ||
-        document.querySelector(".cta");
+      // Find a prominent button or CTA with multiple selectors
+      const buttonSelectors = [
+        'button[class*="primary"]',
+        'a[class*="primary"]',
+        'button[class*="cta"]',
+        'a[class*="cta"]',
+        '.btn-primary',
+        '.button-primary',
+        'button',
+        'a[class*="button"]',
+        'a[class*="btn"]',
+      ];
+
+      let button: Element | null = null;
+      for (const selector of buttonSelectors) {
+        button = document.querySelector(selector);
+        if (button) break;
+      }
 
       const buttonStyles = button ? window.getComputedStyle(button) : null;
+
+      // Find links for brand color
+      const link = document.querySelector('a[href]');
+      const linkStyles = link ? window.getComputedStyle(link) : null;
 
       return {
         bodyBg: bodyStyles.backgroundColor,
         bodyText: bodyStyles.color,
         buttonBg: buttonStyles?.backgroundColor,
+        linkColor: linkStyles?.color,
       };
     });
 
     return colors;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Extract colors from CTA elements
+ */
+async function extractCTAColors(page: Page): Promise<{
+  primaryCTA?: string;
+}> {
+  try {
+    const ctaColor = await page.evaluate(() => {
+      // Find CTAs with various selectors
+      const ctaSelectors = [
+        '[class*="add-to-cart"]',
+        '[class*="buy-now"]',
+        '[class*="shop-now"]',
+        '[class*="cta"]',
+        'button[class*="primary"]',
+        '.btn-primary',
+        '.button-primary',
+      ];
+
+      for (const selector of ctaSelectors) {
+        const elem = document.querySelector(selector);
+        if (elem) {
+          const styles = window.getComputedStyle(elem);
+          return styles.backgroundColor;
+        }
+      }
+
+      return undefined;
+    });
+
+    return {
+      primaryCTA: ctaColor,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Extract dominant colors from visible images (like logos, headers)
+ */
+async function extractDominantColorsFromImages(page: Page): Promise<{
+  dominant?: string;
+}> {
+  try {
+    const imageColor = await page.evaluate(() => {
+      // This is a simplified approach - in production, you'd use canvas analysis
+      // For now, we'll check background colors of header/hero sections
+      const heroSelectors = [
+        'header',
+        '.hero',
+        '.header',
+        '[class*="hero"]',
+        '.banner',
+      ];
+
+      for (const selector of heroSelectors) {
+        const elem = document.querySelector(selector);
+        if (elem) {
+          const styles = window.getComputedStyle(elem);
+          const bgColor = styles.backgroundColor;
+
+          // Check if it's not transparent or white
+          if (bgColor && !bgColor.includes('rgba(0, 0, 0, 0)') && bgColor !== 'transparent') {
+            return bgColor;
+          }
+        }
+      }
+
+      return undefined;
+    });
+
+    return {
+      dominant: imageColor,
+    };
   } catch {
     return {};
   }
