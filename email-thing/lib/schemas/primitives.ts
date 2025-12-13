@@ -12,6 +12,15 @@ export const SectionTypeSchema = z.enum([
   "testimonial",
   "trustBar",
   "footer",
+  // New section types
+  "announcementBar",
+  "navHeader",
+  "benefitsList",
+  "storySection",
+  "socialProofGrid",
+  "faq",
+  "secondaryCTA",
+  "legalFinePrint",
 ]);
 
 export type SectionType = z.infer<typeof SectionTypeSchema>;
@@ -30,6 +39,13 @@ export const BlockTypeSchema = z.enum([
   "divider",
   "spacer",
   "smallPrint",
+  // New block types
+  "badge",
+  "bullets",
+  "priceLine",
+  "rating",
+  "navLinks",
+  "socialIcons",
 ]);
 
 export type BlockType = z.infer<typeof BlockTypeSchema>;
@@ -71,9 +87,21 @@ export const ToneSchema = z.enum([
 export type Tone = z.infer<typeof ToneSchema>;
 
 /**
- * Background type for sections
+ * Background type for sections (tokenized backgrounds)
  */
-export const BackgroundTypeSchema = z.enum(["brand", "surface", "transparent"]);
+export const BackgroundTypeSchema = z.enum([
+  "brand",
+  "surface",
+  "transparent",
+  // New background tokens
+  "bg",
+  "muted",
+  "primarySoft",
+  "accentSoft",
+  "primary",
+  "accent",
+  "image",
+]);
 
 export type BackgroundType = z.infer<typeof BackgroundTypeSchema>;
 
@@ -87,7 +115,7 @@ export type ButtonVariant = z.infer<typeof ButtonVariantSchema>;
 /**
  * Button styles
  */
-export const ButtonStyleSchema = z.enum(["solid", "outline"]);
+export const ButtonStyleSchema = z.enum(["solid", "outline", "soft"]);
 
 export type ButtonStyle = z.infer<typeof ButtonStyleSchema>;
 
@@ -117,3 +145,67 @@ export const HexColorSchema = z
   .regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color (#RRGGBB)");
 
 export type HexColor = z.infer<typeof HexColorSchema>;
+
+/**
+ * Text color tokens for section styling
+ */
+export const TextColorTokenSchema = z.enum(["ink", "bg"]);
+
+export type TextColorToken = z.infer<typeof TextColorTokenSchema>;
+
+/**
+ * Container style tokens for sections
+ */
+export const ContainerStyleSchema = z.enum(["flat", "card"]);
+
+export type ContainerStyle = z.infer<typeof ContainerStyleSchema>;
+
+/**
+ * Divider position for sections
+ */
+export const DividerPositionSchema = z.enum(["none", "top", "bottom", "both"]);
+
+export type DividerPosition = z.infer<typeof DividerPositionSchema>;
+
+/**
+ * Card border styles
+ */
+export const CardBorderSchema = z.enum(["none", "hairline"]);
+
+export type CardBorder = z.infer<typeof CardBorderSchema>;
+
+/**
+ * Card shadow styles
+ */
+export const CardShadowSchema = z.enum(["none", "soft"]);
+
+export type CardShadow = z.infer<typeof CardShadowSchema>;
+
+/**
+ * Badge tone tokens
+ */
+export const BadgeToneSchema = z.enum([
+  "primary",
+  "accent",
+  "muted",
+  "success",
+  "warning",
+  "error",
+]);
+
+export type BadgeTone = z.infer<typeof BadgeToneSchema>;
+
+/**
+ * Social network types
+ */
+export const SocialNetworkSchema = z.enum([
+  "facebook",
+  "twitter",
+  "instagram",
+  "linkedin",
+  "youtube",
+  "tiktok",
+  "pinterest",
+]);
+
+export type SocialNetwork = z.infer<typeof SocialNetworkSchema>;

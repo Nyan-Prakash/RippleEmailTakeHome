@@ -1,7 +1,32 @@
-import type { EmailSpec } from "../../schemas/emailSpec";
+import type { EmailSpec, Theme } from "../../schemas/emailSpec";
 import type { Section, Layout } from "../../schemas/emailSpec";
-import type { Block, ProductCardBlock } from "../../schemas/blocks";
+import type {
+  Block,
+  ProductCardBlock,
+  BadgeBlock,
+  BulletsBlock,
+  PriceLineBlock,
+  RatingBlock,
+  NavLinksBlock,
+  SocialIconsBlock,
+} from "../../schemas/blocks";
 import type { Product } from "../../schemas/brand";
+import {
+  renderBadge,
+  renderBullets,
+  renderPriceLine,
+  renderRating,
+  renderNavLinks,
+  renderSocialIcons,
+} from "./newBlockRenderers";
+import {
+  resolveSectionBackground,
+  resolveSectionTextColor,
+  getSectionPadding,
+  shouldUseCardContainer,
+  getDividerPosition,
+  getCardStyles,
+} from "./styleHelpers";
 
 /**
  * Renderer warning (non-fatal issues)
@@ -46,7 +71,7 @@ export function renderEmailSpecToMjml(
     }
   }
 
-  // Clamp theme values to safe ranges
+  // Clamp theme values to safe ranges and include new palette/rhythm/components
   const theme = {
     containerWidth: Math.min(Math.max(spec.theme.containerWidth, 480), 720),
     backgroundColor: spec.theme.backgroundColor,
@@ -58,7 +83,12 @@ export function renderEmailSpecToMjml(
     button: {
       radius: Math.min(Math.max(spec.theme.button.radius, 0), 24),
       style: spec.theme.button.style,
+      paddingY: spec.theme.button.paddingY,
+      paddingX: spec.theme.button.paddingX,
     },
+    palette: spec.theme.palette,
+    rhythm: spec.theme.rhythm,
+    components: spec.theme.components,
   };
 
   // Build MJML document
@@ -128,17 +158,15 @@ function renderSection(
   catalogLookup: Map<string, Product>,
   warnings: RendererWarning[]
 ): string {
-  // Determine background color based on section style
-  const bgColor = section.style?.background
-    ? section.style.background === "surface"
-      ? theme.surfaceColor
-      : section.style.background === "brand"
-        ? theme.primaryColor
-        : theme.backgroundColor
-    : theme.backgroundColor;
+  // Use token resolution for background and text colors
+  const bgColor = resolveSectionBackground(section, theme);
+  const textColor = resolveSectionTextColor(section, theme);
+  const padding = getSectionPadding(section, theme);
+  const useCard = shouldUseCardContainer(section);
+  const dividerPos = getDividerPosition(section);
 
-  const paddingX = section.style?.paddingX ?? 20;
-  const paddingY = section.style?.paddingY ?? 20;
+  const paddingX = padding.paddingX;
+  const paddingY = padding.paddingY;
 
   // Handle layout
   const layout = section.layout || { variant: "single" };
@@ -263,6 +291,18 @@ function renderBlock(
       return renderSpacerBlock(block);
     case "smallPrint":
       return renderSmallPrintBlock(block, theme);
+    case "badge":
+      return renderBadge(block as BadgeBlock, theme);
+    case "bullets":
+      return renderBullets(block as BulletsBlock, theme);
+    case "priceLine":
+      return renderPriceLine(block as PriceLineBlock, theme);
+    case "rating":
+      return renderRating(block as RatingBlock, theme);
+    case "navLinks":
+      return renderNavLinks(block as NavLinksBlock, theme);
+    case "socialIcons":
+      return renderSocialIcons(block as SocialIconsBlock, theme);
     default:
       return "";
   }

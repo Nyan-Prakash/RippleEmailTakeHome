@@ -17,7 +17,7 @@ describe("POST /api/email/render", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" as const },
+        button: { radius: 8, style: "solid" as const, paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -124,7 +124,7 @@ describe("POST /api/email/render", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" as const },
+        button: { radius: 8, style: "solid" as const, paddingY: 12, paddingX: 24 },
       },
       sections: [
         {

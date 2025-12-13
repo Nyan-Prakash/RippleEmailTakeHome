@@ -76,7 +76,7 @@ describe("POST /api/email/spec", () => {
       mutedTextColor: "#666666",
       primaryColor: "#111111",
       font: { heading: "Arial", body: "Arial" },
-      button: { radius: 8, style: "solid" },
+      button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
     },
     sections: [
       {

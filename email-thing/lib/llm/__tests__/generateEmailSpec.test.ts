@@ -263,7 +263,7 @@ describe("generateEmailSpec", () => {
         mutedTextColor: "#666666",
         primaryColor: "#FF5733",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -368,7 +368,7 @@ describe("generateEmailSpec", () => {
         mutedTextColor: "#666666",
         primaryColor: "#FF5733",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -427,7 +427,7 @@ describe("generateEmailSpec", () => {
         mutedTextColor: "#666666",
         primaryColor: "#0000FF", // Different from brand primary
         font: { heading: "Comic Sans", body: "Arial" }, // Different font
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {

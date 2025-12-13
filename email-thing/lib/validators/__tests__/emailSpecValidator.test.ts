@@ -59,6 +59,8 @@ describe("validateEmailSpecStructure", () => {
         button: {
           radius: 8,
           style: "solid",
+          paddingY: 12,
+          paddingX: 24,
         },
       },
       sections: [
@@ -123,7 +125,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -178,7 +180,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -231,7 +233,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -286,7 +288,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -336,7 +338,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -402,7 +404,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -459,7 +461,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -515,7 +517,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -571,7 +573,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         {
@@ -637,7 +639,7 @@ describe("validateEmailSpecStructure", () => {
         mutedTextColor: "#666666",
         primaryColor: "#111111",
         font: { heading: "Arial", body: "Arial" },
-        button: { radius: 8, style: "solid" },
+        button: { radius: 8, style: "solid", paddingY: 12, paddingX: 24 },
       },
       sections: [
         { id: "header-1", type: "header", blocks: [] },

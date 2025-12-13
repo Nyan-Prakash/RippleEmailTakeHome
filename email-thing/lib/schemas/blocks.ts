@@ -3,6 +3,8 @@ import {
   AlignmentSchema,
   HeadingLevelSchema,
   ButtonVariantSchema,
+  BadgeToneSchema,
+  SocialNetworkSchema,
 } from "./primitives";
 
 /**
@@ -139,6 +141,92 @@ export const SmallPrintBlockSchema = z.object({
 export type SmallPrintBlock = z.infer<typeof SmallPrintBlockSchema>;
 
 /**
+ * Badge block (label with tone)
+ */
+export const BadgeBlockSchema = z.object({
+  type: z.literal("badge"),
+  text: createSanitizedStringSchema(1),
+  tone: BadgeToneSchema.optional(),
+});
+
+export type BadgeBlock = z.infer<typeof BadgeBlockSchema>;
+
+/**
+ * Bullets block (list of items)
+ */
+export const BulletsBlockSchema = z.object({
+  type: z.literal("bullets"),
+  items: z
+    .array(createSanitizedStringSchema(1))
+    .min(1, "Bullets must have at least one item")
+    .max(10, "Bullets can have at most 10 items"),
+  icon: z.string().trim().optional(),
+});
+
+export type BulletsBlock = z.infer<typeof BulletsBlockSchema>;
+
+/**
+ * Price line block (price display with optional comparison)
+ */
+export const PriceLineBlockSchema = z.object({
+  type: z.literal("priceLine"),
+  price: createSanitizedStringSchema(1),
+  compareAt: createSanitizedStringSchema(0).optional(),
+  savingsText: createSanitizedStringSchema(0).optional(),
+});
+
+export type PriceLineBlock = z.infer<typeof PriceLineBlockSchema>;
+
+/**
+ * Rating block (star rating display)
+ */
+export const RatingBlockSchema = z.object({
+  type: z.literal("rating"),
+  value: z.number().min(0).max(5),
+  count: z.number().int().min(0).optional(),
+  align: AlignmentSchema.optional(),
+});
+
+export type RatingBlock = z.infer<typeof RatingBlockSchema>;
+
+/**
+ * Nav links block (horizontal navigation)
+ */
+export const NavLinksBlockSchema = z.object({
+  type: z.literal("navLinks"),
+  links: z
+    .array(
+      z.object({
+        label: createSanitizedStringSchema(1),
+        url: UrlSchema,
+      })
+    )
+    .min(1, "Nav links must have at least one link")
+    .max(8, "Nav links can have at most 8 links"),
+});
+
+export type NavLinksBlock = z.infer<typeof NavLinksBlockSchema>;
+
+/**
+ * Social icons block (social media links)
+ */
+export const SocialIconsBlockSchema = z.object({
+  type: z.literal("socialIcons"),
+  links: z
+    .array(
+      z.object({
+        network: SocialNetworkSchema,
+        url: UrlSchema,
+      })
+    )
+    .min(1, "Social icons must have at least one link")
+    .max(7, "Social icons can have at most 7 links"),
+  align: AlignmentSchema.optional(),
+});
+
+export type SocialIconsBlock = z.infer<typeof SocialIconsBlockSchema>;
+
+/**
  * Discriminated union of all block types
  */
 export const BlockSchema = z.discriminatedUnion("type", [
@@ -151,6 +239,12 @@ export const BlockSchema = z.discriminatedUnion("type", [
   DividerBlockSchema,
   SpacerBlockSchema,
   SmallPrintBlockSchema,
+  BadgeBlockSchema,
+  BulletsBlockSchema,
+  PriceLineBlockSchema,
+  RatingBlockSchema,
+  NavLinksBlockSchema,
+  SocialIconsBlockSchema,
 ]);
 
 export type Block = z.infer<typeof BlockSchema>;

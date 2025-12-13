@@ -349,7 +349,75 @@ export function validateEmailSpecStructure(args: {
 
   // ===== NON-BLOCKING WARNINGS =====
 
-  // 1. Theme drift - colors
+  // Check for products (used in multiple warnings below)
+  const hasProducts = (spec.catalog?.items?.length || 0) > 0;
+
+  // 1. Background monotony: warn if 3+ consecutive sections share same background
+  const sectionBackgrounds = spec.sections.map((section, idx) => ({
+    idx,
+    background: section.style?.background || "bg",
+  }));
+
+  for (let i = 0; i < sectionBackgrounds.length - 2; i++) {
+    const bg1 = sectionBackgrounds[i].background;
+    const bg2 = sectionBackgrounds[i + 1].background;
+    const bg3 = sectionBackgrounds[i + 2].background;
+
+    if (bg1 === bg2 && bg2 === bg3) {
+      issues.push({
+        code: "BACKGROUND_MONOTONY",
+        severity: "warning",
+        message: `Sections ${i}-${i + 2} have the same background (${bg1}). Consider alternating backgrounds for visual variety`,
+        path: `sections[${i}]`,
+      });
+      // Skip ahead to avoid duplicate warnings
+      i += 2;
+    }
+  }
+
+  // 2. Too few sections
+  const minSections = intent.type === "sale" || intent.type === "launch" ? 7 : 6;
+  if (spec.sections.length < minSections) {
+    issues.push({
+      code: "TOO_FEW_SECTIONS",
+      severity: "warning",
+      message: `Email has only ${spec.sections.length} sections. Consider adding more content (recommended: ${minSections}+)`,
+      path: "sections",
+    });
+  }
+
+  // 3. No secondary CTA
+  const hasMidpointCta = spec.sections.some((section, idx) => {
+    if (idx < spec.sections.length / 2) return false;
+    const allBlocks = section.blocks;
+    return allBlocks.some(block => block.type === "button");
+  });
+
+  const hasSecondaryCTA = spec.sections.some(s => s.type === "secondaryCTA");
+
+  if (!hasSecondaryCTA && !hasMidpointCta) {
+    issues.push({
+      code: "MISSING_SECONDARY_CTA",
+      severity: "warning",
+      message: "Email should include a secondary CTA after midpoint or a secondaryCTA section",
+      path: "sections",
+    });
+  }
+
+  // 4. No social proof for ecommerce
+  const hasSocialProofGrid = spec.sections.some(s => s.type === "socialProofGrid");
+  const hasTestimonial = spec.sections.some(s => s.type === "testimonial");
+
+  if (hasProducts && !hasSocialProofGrid && !hasTestimonial) {
+    issues.push({
+      code: "ECOMMERCE_MISSING_SOCIAL_PROOF",
+      severity: "warning",
+      message: "Ecommerce emails should include socialProofGrid or testimonial section",
+      path: "sections",
+    });
+  }
+
+  // 5. Theme drift - colors
   const brandPrimary = brandContext.brand.colors.primary;
   const specPrimary = spec.theme.primaryColor;
   
@@ -406,7 +474,7 @@ export function validateEmailSpecStructure(args: {
     }
   }
 
-  // 3. Content imbalance
+  // 6. Content imbalance
   if (spec.sections.length > 7) {
     issues.push({
       code: "TOO_MANY_SECTIONS",
@@ -416,20 +484,7 @@ export function validateEmailSpecStructure(args: {
     });
   }
 
-  // Check for social proof in commerce brands
-  const hasProducts = (spec.catalog?.items?.length || 0) > 0;
-  const hasSocialProof = spec.sections.some(s => s.type === "testimonial" || s.type === "trustBar");
-  
-  if (hasProducts && !hasSocialProof) {
-    issues.push({
-      code: "COMMERCE_MISSING_SOCIAL_PROOF",
-      severity: "warning",
-      message: "Commerce emails should include testimonial or trust bar section",
-      path: "sections",
-    });
-  }
-
-  // 4. Copy length warnings
+  // 7. Copy length warnings
   spec.sections.forEach((section, sectionIdx) => {
     const checkTextLength = (blocks: any[], path: string) => {
       blocks.forEach((block, blockIdx) => {

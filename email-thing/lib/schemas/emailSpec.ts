@@ -4,6 +4,11 @@ import {
   SectionTypeSchema,
   BackgroundTypeSchema,
   ButtonStyleSchema,
+  TextColorTokenSchema,
+  ContainerStyleSchema,
+  DividerPositionSchema,
+  CardBorderSchema,
+  CardShadowSchema,
 } from "./primitives";
 import { BlockSchema } from "./blocks";
 import { ProductSchema } from "./brand";
@@ -27,14 +32,73 @@ export const EmailMetaSchema = z.object({
 export type EmailMeta = z.infer<typeof EmailMetaSchema>;
 
 /**
- * Button theme configuration
+ * Extended color palette with brand-derived tokens
+ */
+export const PaletteSchema = z.object({
+  primary: HexColorSchema,
+  ink: HexColorSchema,
+  bg: HexColorSchema,
+  surface: HexColorSchema,
+  muted: HexColorSchema,
+  accent: HexColorSchema,
+  primarySoft: HexColorSchema,
+  accentSoft: HexColorSchema,
+});
+
+export type Palette = z.infer<typeof PaletteSchema>;
+
+/**
+ * Rhythm (spacing tokens)
+ */
+export const RhythmSchema = z.object({
+  sectionGap: z.number().int().min(0).max(64).default(24),
+  contentPaddingX: z.number().int().min(0).max(64).default(16),
+  contentPaddingY: z.number().int().min(0).max(64).default(24),
+});
+
+export type Rhythm = z.infer<typeof RhythmSchema>;
+
+/**
+ * Button component configuration
  */
 export const ButtonThemeSchema = z.object({
   radius: z.number().int().min(0).max(24).default(8),
   style: ButtonStyleSchema.default("solid"),
+  paddingY: z.number().int().min(0).max(32).default(12),
+  paddingX: z.number().int().min(0).max(64).default(24),
 });
 
 export type ButtonTheme = z.infer<typeof ButtonThemeSchema>;
+
+/**
+ * Card component configuration
+ */
+export const CardThemeSchema = z.object({
+  radius: z.number().int().min(0).max(24).default(8),
+  border: CardBorderSchema.default("none"),
+  shadow: CardShadowSchema.default("none"),
+});
+
+export type CardTheme = z.infer<typeof CardThemeSchema>;
+
+/**
+ * Component tokens
+ */
+export const ComponentsSchema = z.object({
+  button: ButtonThemeSchema.default({
+    radius: 8,
+    style: "solid" as const,
+    paddingY: 12,
+    paddingX: 24,
+  }),
+  card: CardThemeSchema.default({
+    radius: 8,
+    border: "none" as const,
+    shadow: "none" as const,
+  }),
+});
+
+export type Components = z.infer<typeof ComponentsSchema>;
 
 /**
  * Font configuration
@@ -51,24 +115,39 @@ export type FontConfig = z.infer<typeof FontConfigSchema>;
  */
 export const ThemeSchema = z.object({
   containerWidth: z.number().int().min(480).max(720).default(600),
+  // Legacy color fields (backward compatible)
   backgroundColor: HexColorSchema.default("#FFFFFF"),
   surfaceColor: HexColorSchema.default("#F5F5F5"),
   textColor: HexColorSchema.default("#111111"),
   mutedTextColor: HexColorSchema.default("#666666"),
   primaryColor: HexColorSchema.default("#111111"),
+  // New extended palette
+  palette: PaletteSchema.optional(),
+  rhythm: RhythmSchema.optional(),
   font: FontConfigSchema.default({ heading: "Arial", body: "Arial" }),
-  button: ButtonThemeSchema.default({ radius: 8, style: "solid" }),
+  // Legacy button field (backward compatible)
+  button: ButtonThemeSchema.default({
+    radius: 8,
+    style: "solid" as const,
+    paddingY: 12,
+    paddingX: 24,
+  }),
+  // New component tokens
+  components: ComponentsSchema.optional(),
 });
 
 export type Theme = z.infer<typeof ThemeSchema>;
 
 /**
- * Section style (padding, background)
+ * Section style (padding, background, text color, container, divider)
  */
 export const SectionStyleSchema = z.object({
   paddingX: z.number().int().min(0).max(64).optional(),
   paddingY: z.number().int().min(0).max(64).optional(),
   background: BackgroundTypeSchema.optional(),
+  text: TextColorTokenSchema.optional(),
+  container: ContainerStyleSchema.optional(),
+  divider: DividerPositionSchema.optional(),
 });
 
 export type SectionStyle = z.infer<typeof SectionStyleSchema>;
@@ -118,6 +197,7 @@ export type Layout =
 export const SectionSchema = z.object({
   id: z.string().trim().min(1, "Section ID is required"),
   type: SectionTypeSchema,
+  variant: z.string().trim().optional(),
   layout: LayoutSchema.optional(),
   blocks: z.array(BlockSchema),
   style: SectionStyleSchema.optional(),
@@ -149,12 +229,12 @@ export const EmailSpecSchema = z
       mutedTextColor: "#666666",
       primaryColor: "#111111",
       font: { heading: "Arial", body: "Arial" },
-      button: { radius: 8, style: "solid" as const },
+      button: { radius: 8, style: "solid" as const, paddingY: 12, paddingX: 24 },
     }),
     sections: z
       .array(SectionSchema)
       .min(3, "Must have at least 3 sections")
-      .max(10, "Maximum 10 sections allowed"),
+      .max(12, "Maximum 12 sections allowed"),
     catalog: CatalogSchema.optional(),
   })
   .superRefine((data, ctx) => {

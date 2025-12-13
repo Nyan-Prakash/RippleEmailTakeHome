@@ -1,0 +1,285 @@
+{
+  "meta": {
+    "subject": "Introducing Our New Collection",
+    "preheader": "Discover amazing products with exclusive features"
+  },
+  "theme": {
+    "containerWidth": 600,
+    "backgroundColor": "#FFFFFF",
+    "surfaceColor": "#F5F5F5",
+    "textColor": "#111111",
+    "mutedTextColor": "#666666",
+    "primaryColor": "#2563EB",
+    "palette": {
+      "primary": "#2563EB",
+      "ink": "#111111",
+      "bg": "#FFFFFF",
+      "surface": "#F5F5F5",
+      "muted": "#9CA3AF",
+      "accent": "#7C3AED",
+      "primarySoft": "#DBEAFE",
+      "accentSoft": "#EDE9FE"
+    },
+    "rhythm": {
+      "sectionGap": 24,
+      "contentPaddingX": 16,
+      "contentPaddingY": 24
+    },
+    "font": {
+      "heading": "Arial",
+      "body": "Arial"
+    },
+    "button": {
+      "radius": 8,
+      "style": "solid",
+      "paddingY": 12,
+      "paddingX": 24
+    },
+    "components": {
+      "button": {
+        "radius": 8,
+        "style": "solid",
+        "paddingY": 12,
+        "paddingX": 24
+      },
+      "card": {
+        "radius": 8,
+        "border": "none",
+        "shadow": "soft"
+      }
+    }
+  },
+  "sections": [
+    {
+      "id": "announcement",
+      "type": "announcementBar",
+      "style": {
+        "background": "primarySoft",
+        "text": "ink"
+      },
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "🎉 Free shipping on orders over $50!",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "header",
+      "type": "header",
+      "style": {
+        "background": "bg"
+      },
+      "blocks": [
+        {
+          "type": "logo",
+          "src": "https://example.com/logo.png",
+          "href": "https://example.com"
+        }
+      ]
+    },
+    {
+      "id": "hero",
+      "type": "hero",
+      "style": {
+        "background": "surface",
+        "paddingY": 40
+      },
+      "blocks": [
+        {
+          "type": "badge",
+          "text": "NEW",
+          "tone": "primary"
+        },
+        {
+          "type": "heading",
+          "text": "Introducing Our New Collection",
+          "level": 1,
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "Discover amazing products designed with you in mind.",
+          "align": "center"
+        },
+        {
+          "type": "button",
+          "text": "Shop Now",
+          "href": "https://example.com/shop",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "benefits",
+      "type": "benefitsList",
+      "style": {
+        "background": "bg"
+      },
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "Why Choose Us",
+          "level": 2,
+          "align": "center"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "Premium quality materials",
+            "30-day money-back guarantee",
+            "Free shipping on all orders",
+            "24/7 customer support"
+          ],
+          "icon": "✓"
+        }
+      ]
+    },
+    {
+      "id": "product-showcase",
+      "type": "productGrid",
+      "style": {
+        "background": "accentSoft"
+      },
+      "layout": {
+        "variant": "grid",
+        "columns": 2,
+        "gap": 16
+      },
+      "blocks": [
+        {
+          "type": "image",
+          "src": "https://example.com/product1.jpg",
+          "alt": "Product 1"
+        },
+        {
+          "type": "heading",
+          "text": "Premium Widget",
+          "level": 3
+        },
+        {
+          "type": "priceLine",
+          "price": "$99",
+          "compareAt": "$149",
+          "savingsText": "Save $50"
+        },
+        {
+          "type": "rating",
+          "value": 4.5,
+          "count": 127,
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "social-proof",
+      "type": "socialProofGrid",
+      "style": {
+        "background": "bg"
+      },
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "Trusted By",
+          "level": 3,
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "Join thousands of satisfied customers",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "faq",
+      "type": "faq",
+      "style": {
+        "background": "surface"
+      },
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "Frequently Asked Questions",
+          "level": 2,
+          "align": "center"
+        },
+        {
+          "type": "heading",
+          "text": "What is your return policy?",
+          "level": 3
+        },
+        {
+          "type": "paragraph",
+          "text": "We offer a 30-day money-back guarantee on all products."
+        },
+        {
+          "type": "divider"
+        },
+        {
+          "type": "heading",
+          "text": "How long does shipping take?",
+          "level": 3
+        },
+        {
+          "type": "paragraph",
+          "text": "Standard shipping takes 3-5 business days."
+        }
+      ]
+    },
+    {
+      "id": "secondary-cta",
+      "type": "secondaryCTA",
+      "style": {
+        "background": "primary",
+        "text": "bg"
+      },
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "Ready to get started?",
+          "level": 2,
+          "align": "center"
+        },
+        {
+          "type": "button",
+          "text": "Start Shopping",
+          "href": "https://example.com/shop",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "type": "footer",
+      "style": {
+        "background": "surface"
+      },
+      "blocks": [
+        {
+          "type": "socialIcons",
+          "links": [
+            { "network": "facebook", "url": "https://facebook.com/example" },
+            { "network": "twitter", "url": "https://twitter.com/example" },
+            { "network": "instagram", "url": "https://instagram.com/example" }
+          ],
+          "align": "center"
+        },
+        {
+          "type": "navLinks",
+          "links": [
+            { "label": "About", "url": "https://example.com/about" },
+            { "label": "Contact", "url": "https://example.com/contact" },
+            { "label": "Privacy", "url": "https://example.com/privacy" }
+          ]
+        },
+        {
+          "type": "smallPrint",
+          "text": "© 2025 Example Company. All rights reserved. {{unsubscribe}}",
+          "align": "center"
+        }
+      ]
+    }
+  ]
+}
