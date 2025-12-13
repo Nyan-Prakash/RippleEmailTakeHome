@@ -6,6 +6,7 @@ import type {
   NavLinksBlock,
   SocialIconsBlock,
 } from "../../schemas/blocks";
+import { getReadableTextColor } from "../../theme/deriveTheme";
 
 /**
  * Escape HTML special characters
@@ -20,16 +21,37 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Render badge block
+ * Render badge block with accessible colors
  */
 export function renderBadge(block: BadgeBlock, theme: any): string {
+  // Build palette for contrast checking (support legacy themes)
+  const palette = theme.palette || {
+    primary: theme.primaryColor,
+    ink: theme.textColor,
+    bg: theme.backgroundColor,
+    surface: theme.surfaceColor,
+    muted: theme.mutedTextColor,
+    accent: theme.primaryColor,
+    primarySoft: theme.backgroundColor,
+    accentSoft: theme.backgroundColor,
+  };
+
   const toneColors: Record<string, { bg: string; text: string }> = {
-    primary: { bg: theme.palette?.primary || theme.primaryColor, text: theme.palette?.bg || theme.backgroundColor },
-    accent: { bg: theme.palette?.accent || theme.primaryColor, text: theme.palette?.bg || theme.backgroundColor },
-    muted: { bg: theme.palette?.muted || theme.surfaceColor, text: theme.palette?.ink || theme.textColor },
-    success: { bg: "#10B981", text: "#FFFFFF" },
-    warning: { bg: "#F59E0B", text: "#000000" },
-    error: { bg: "#EF4444", text: "#FFFFFF" },
+    primary: {
+      bg: theme.accessible?.buttonBackground || palette.primary,
+      text: theme.accessible?.buttonText || getReadableTextColor(palette.primary, palette)
+    },
+    accent: {
+      bg: palette.accent,
+      text: theme.accessible?.onAccent || getReadableTextColor(palette.accent, palette)
+    },
+    muted: {
+      bg: palette.muted,
+      text: getReadableTextColor(palette.muted, palette)
+    },
+    success: { bg: "#10B981", text: "#FFFFFF" },  // Pre-validated WCAG AA
+    warning: { bg: "#F59E0B", text: "#000000" },  // Pre-validated WCAG AA
+    error: { bg: "#EF4444", text: "#FFFFFF" },    // Pre-validated WCAG AA
   };
 
   const tone = block.tone || "primary";

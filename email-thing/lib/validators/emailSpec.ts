@@ -2,6 +2,7 @@ import type { EmailSpec } from "../schemas/emailSpec";
 import type { BrandContext } from "../schemas/brand";
 import type { CampaignIntent } from "../schemas/campaign";
 import type { EmailPlan } from "../schemas/plan";
+import { getLuminance, getContrastRatio } from "../theme/deriveTheme";
 
 /**
  * Validation severity
@@ -433,13 +434,34 @@ export function validateEmailSpecStructure(args: {
   // Theme drift - fonts
   const brandHeadingFont = brandContext.brand.fonts.heading.toLowerCase();
   const specHeadingFont = spec.theme.font.heading.toLowerCase();
-  
+
   if (brandHeadingFont !== specHeadingFont && !specHeadingFont.includes(brandHeadingFont.split(",")[0])) {
     issues.push({
       code: "THEME_FONT_DRIFT",
       severity: "warning",
       message: `Spec heading font (${spec.theme.font.heading}) differs from brand font (${brandContext.brand.fonts.heading})`,
       path: "theme.font.heading",
+    });
+  }
+
+  // 6. Contrast warnings (WCAG AA compliance)
+  const bgInkContrast = getContrastRatio(spec.theme.backgroundColor, spec.theme.textColor);
+  if (bgInkContrast < 4.5) {
+    issues.push({
+      code: "LOW_TEXT_CONTRAST",
+      severity: "warning",
+      message: `Background/text contrast is ${bgInkContrast.toFixed(1)}:1. WCAG AA recommends 4.5:1 minimum for readability`,
+      path: "theme",
+    });
+  }
+
+  const buttonTextContrast = getContrastRatio(spec.theme.primaryColor, spec.theme.backgroundColor);
+  if (buttonTextContrast < 3.0) {
+    issues.push({
+      code: "LOW_BUTTON_CONTRAST",
+      severity: "warning",
+      message: `Button contrast is ${buttonTextContrast.toFixed(1)}:1. WCAG AA recommends 3:1 minimum for UI elements`,
+      path: "theme.button",
     });
   }
 

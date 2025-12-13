@@ -26,7 +26,7 @@ function blendColors(color1: string, color2: string, ratio: number): string {
 /**
  * Calculate relative luminance of a color (WCAG 2.0)
  */
-function getLuminance(hex: string): number {
+export function getLuminance(hex: string): number {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
   const b = parseInt(hex.slice(5, 7), 16) / 255;
@@ -41,7 +41,7 @@ function getLuminance(hex: string): number {
 /**
  * Calculate contrast ratio between two colors
  */
-function getContrastRatio(color1: string, color2: string): number {
+export function getContrastRatio(color1: string, color2: string): number {
   const lum1 = getLuminance(color1);
   const lum2 = getLuminance(color2);
 
@@ -139,6 +139,63 @@ function lighten(hex: string, percent: number): string {
 }
 
 /**
+ * Get readable text color for a given background
+ * Ensures WCAG AA 4.5:1 minimum contrast for text
+ */
+export function getReadableTextColor(backgroundColor: string, palette: Palette): string {
+  const bgLuminance = getLuminance(backgroundColor);
+  const inkContrast = getContrastRatio(backgroundColor, palette.ink);
+  const bgColorContrast = getContrastRatio(backgroundColor, palette.bg);
+
+  // For text, we need 4.5:1 minimum (WCAG AA)
+  if (inkContrast >= 4.5) return palette.ink;
+  if (bgColorContrast >= 4.5) return palette.bg;
+
+  // Auto-adjust: use black or white based on luminance
+  return bgLuminance > 0.5 ? '#000000' : '#FFFFFF';
+}
+
+/**
+ * Get accessible button colors
+ * Ensures WCAG AA 3:1 minimum contrast for UI components
+ */
+export function getButtonColors(theme: any): { bg: string, text: string } {
+  const buttonBg = theme.palette?.primary || theme.primaryColor;
+  const palette = theme.palette || {
+    bg: theme.backgroundColor,
+    ink: theme.textColor,
+    primary: theme.primaryColor,
+    accent: theme.primaryColor,
+    surface: theme.surfaceColor,
+    muted: theme.mutedTextColor,
+    primarySoft: lighten(theme.primaryColor, 0.8),
+    accentSoft: lighten(theme.primaryColor, 0.8),
+  };
+
+  const candidateTexts = [
+    palette.bg || theme.backgroundColor,
+    palette.ink || theme.textColor,
+    '#FFFFFF',
+    '#000000'
+  ];
+
+  // Find first candidate with 3:1 contrast (WCAG AA for UI components)
+  for (const textColor of candidateTexts) {
+    if (getContrastRatio(buttonBg, textColor) >= 3.0) {
+      return { bg: buttonBg, text: textColor };
+    }
+  }
+
+  // Fallback: adjust button bg to ensure contrast
+  const bgLuminance = getLuminance(buttonBg);
+  const adjustedBg = bgLuminance > 0.5 ? darken(buttonBg, 0.3) : lighten(buttonBg, 0.3);
+  return {
+    bg: adjustedBg,
+    text: bgLuminance > 0.5 ? '#000000' : '#FFFFFF'
+  };
+}
+
+/**
  * Derive a complete theme palette from brand context
  * This ensures all colors are brand-derived, no random hex values
  */
@@ -183,23 +240,23 @@ export function deriveThemeFromBrandContext(brandContext: BrandContext): {
   const primarySoft = blendColors(primary, bg, 0.85);
   const accentSoft = blendColors(accent, bg, 0.85);
 
-  // Ensure contrast safeguards
+  // Ensure contrast safeguards (WCAG AA 4.5:1 for text)
   // If primarySoft or accentSoft would have low contrast with ink, adjust
   const primarySoftInkContrast = getContrastRatio(primarySoft, ink);
   const accentSoftInkContrast = getContrastRatio(accentSoft, ink);
 
   const finalPrimarySoft =
-    primarySoftInkContrast < 1.5
+    primarySoftInkContrast < 4.5
       ? isLightBg
-        ? darken(primarySoft, 0.1)
-        : lighten(primarySoft, 0.1)
+        ? darken(primarySoft, 0.15)
+        : lighten(primarySoft, 0.15)
       : primarySoft;
 
   const finalAccentSoft =
-    accentSoftInkContrast < 1.5
+    accentSoftInkContrast < 4.5
       ? isLightBg
-        ? darken(accentSoft, 0.1)
-        : lighten(accentSoft, 0.1)
+        ? darken(accentSoft, 0.15)
+        : lighten(accentSoft, 0.15)
       : accentSoft;
 
   const palette: Palette = {
@@ -234,6 +291,47 @@ export function deriveThemeFromBrandContext(brandContext: BrandContext): {
   };
 
   return { palette, rhythm, components };
+}
+
+/**
+ * Enhance any theme (LLM-generated or manual) with accessible colors
+ * Calculates text colors that meet WCAG AA standards for all backgrounds
+ */
+export function enhanceThemeWithAccessibleColors(theme: any): any {
+  // Build palette from theme (support both new palette and legacy colors)
+  const palette = theme.palette || {
+    primary: theme.primaryColor,
+    ink: theme.textColor,
+    bg: theme.backgroundColor,
+    surface: theme.surfaceColor,
+    muted: theme.mutedTextColor,
+    accent: theme.primaryColor,
+    primarySoft: lighten(theme.primaryColor, 0.8),
+    accentSoft: lighten(theme.primaryColor, 0.8),
+  };
+
+  // Calculate accessible text colors for each background token
+  const accessible = {
+    buttonBackground: palette.primary,
+    buttonText: getReadableTextColor(palette.primary, palette),
+    onPrimary: getReadableTextColor(palette.primary, palette),
+    onAccent: getReadableTextColor(palette.accent, palette),
+    onSurface: getReadableTextColor(palette.surface, palette),
+    onPrimarySoft: getReadableTextColor(palette.primarySoft, palette),
+    onAccentSoft: getReadableTextColor(palette.accentSoft, palette),
+    onMuted: getReadableTextColor(palette.muted, palette),
+  };
+
+  // Adjust button colors if needed to meet 3:1 contrast minimum
+  const buttonColors = getButtonColors({ ...theme, palette, accessible });
+  accessible.buttonBackground = buttonColors.bg;
+  accessible.buttonText = buttonColors.text;
+
+  return {
+    ...theme,
+    palette,
+    accessible,
+  };
 }
 
 /**

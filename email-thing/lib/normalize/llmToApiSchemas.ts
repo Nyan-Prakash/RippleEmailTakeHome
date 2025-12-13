@@ -55,8 +55,9 @@ function normalizeSectionType(
  * Infer layout variant from template
  */
 function inferLayoutVariant(
-  template: LLMEmailPlan["layout"]["template"]
+  template?: LLMEmailPlan["layout"]["template"]
 ): "single" | "twoColumn" | "grid" | undefined {
+  if (!template) return "single"; // Default if no template provided
   // Map templates to their typical layout patterns
   if (template === "product_grid") return "grid";
   if (template === "hero_with_products") return "twoColumn";
@@ -109,7 +110,7 @@ export function normalizeEmailPlan(
     goal: llmIntent.goal,
     sections: llmPlan.sections.map((section) => ({
       type: normalizeSectionType(section.type),
-      variant: inferLayoutVariant(llmPlan.layout.template),
+      variant: inferLayoutVariant(llmPlan.layout?.template),
       count: section.productIds?.length || undefined,
     })),
   };

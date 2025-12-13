@@ -27,6 +27,7 @@ import {
   getDividerPosition,
   getCardStyles,
 } from "./styleHelpers";
+import { getButtonColors } from "../../theme/deriveTheme";
 
 /**
  * Renderer warning (non-fatal issues)
@@ -71,7 +72,7 @@ export function renderEmailSpecToMjml(
     }
   }
 
-  // Clamp theme values to safe ranges and include new palette/rhythm/components
+  // Clamp theme values to safe ranges and include new palette/rhythm/components/accessible
   const theme = {
     containerWidth: Math.min(Math.max(spec.theme.containerWidth, 480), 720),
     backgroundColor: spec.theme.backgroundColor,
@@ -89,6 +90,7 @@ export function renderEmailSpecToMjml(
     palette: spec.theme.palette,
     rhythm: spec.theme.rhythm,
     components: spec.theme.components,
+    accessible: (spec.theme as any).accessible,  // Accessible colors from enhanceThemeWithAccessibleColors
   };
 
   // Build MJML document
@@ -100,7 +102,7 @@ export function renderEmailSpecToMjml(
     <mj-attributes>
       <mj-all font-family="${escapeHtml(theme.font.body)}, Arial, sans-serif" />
       <mj-text font-size="16px" line-height="1.5" color="${theme.textColor}" />
-      <mj-button background-color="${theme.primaryColor}" color="${theme.backgroundColor}" border-radius="${theme.button.radius}px" font-weight="bold" />
+      <mj-button background-color="${theme.accessible?.buttonBackground || theme.primaryColor}" color="${theme.accessible?.buttonText || theme.backgroundColor}" border-radius="${theme.button.radius}px" font-weight="bold" />
     </mj-attributes>
     <mj-style>
       .heading { font-family: ${escapeHtml(theme.font.heading)}, Arial, sans-serif; font-weight: bold; line-height: 1.2; }
@@ -411,21 +413,20 @@ function renderButtonBlock(
     return `      <mj-text align="${align}">${escapeHtml(block.text)}</mj-text>`;
   }
 
-  // Determine button style
-  let bgColor = theme.primaryColor;
-  let textColor = theme.backgroundColor;
+  // Use pre-calculated accessible button colors for WCAG AA compliance
+  const buttonColors = theme.accessible?.buttonBackground && theme.accessible?.buttonText
+    ? { bg: theme.accessible.buttonBackground, text: theme.accessible.buttonText }
+    : getButtonColors(theme);  // Fallback for legacy themes
+
+  let bgColor = buttonColors.bg;
+  let textColor = buttonColors.text;
   let border = "none";
 
-  if (variant === "secondary") {
+  // Handle secondary and outline variants
+  if (variant === "secondary" || theme.button.style === "outline") {
     bgColor = "transparent";
-    textColor = theme.primaryColor;
-    border = `2px solid ${theme.primaryColor}`;
-  }
-
-  if (theme.button.style === "outline") {
-    bgColor = "transparent";
-    textColor = theme.primaryColor;
-    border = `2px solid ${theme.primaryColor}`;
+    textColor = buttonColors.bg;  // Use button bg color as text (maintains brand)
+    border = `2px solid ${buttonColors.bg}`;
   }
 
   return `      <mj-button href="${escapeHtml(block.href)}" align="${align}" background-color="${bgColor}" color="${textColor}" border="${border}">${escapeHtml(block.text)}</mj-button>`;

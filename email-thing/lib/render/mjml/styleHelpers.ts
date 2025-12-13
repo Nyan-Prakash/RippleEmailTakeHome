@@ -1,5 +1,5 @@
 import type { Theme, Section } from "../../schemas/emailSpec";
-import { resolveBackgroundToken, resolveTextColorToken } from "../../theme/deriveTheme";
+import { resolveBackgroundToken, resolveTextColorToken, getReadableTextColor } from "../../theme/deriveTheme";
 
 /**
  * Resolve section background color from token or legacy value
@@ -26,24 +26,48 @@ export function resolveSectionBackground(section: Section, theme: Theme): string
 
 /**
  * Resolve section text color from token or legacy value
+ * Uses accessible colors when available to ensure WCAG AA compliance
  */
-export function resolveSectionTextColor(section: Section, theme: Theme): string {
+export function resolveSectionTextColor(section: Section, theme: any): string {
+  const bgToken = section.style?.background || 'bg';
+
+  // If theme has accessible colors, use them for automatic contrast
+  if (theme.accessible) {
+    const accessibleTextMap: Record<string, string> = {
+      bg: theme.palette?.ink || theme.textColor,
+      surface: theme.accessible.onSurface,
+      muted: theme.accessible.onMuted || theme.palette?.ink || theme.textColor,
+      primary: theme.accessible.onPrimary,
+      accent: theme.accessible.onAccent,
+      primarySoft: theme.accessible.onPrimarySoft,
+      accentSoft: theme.accessible.onAccentSoft,
+      transparent: theme.palette?.ink || theme.textColor,
+      brand: theme.accessible.onPrimary,
+      image: theme.palette?.bg || theme.backgroundColor,
+    };
+
+    return accessibleTextMap[bgToken] || theme.textColor;
+  }
+
+  // If explicit text token is provided, use it
   const token = section.style?.text;
-
-  if (!token) {
-    return theme.textColor;
+  if (token) {
+    if (theme.palette) {
+      return resolveTextColorToken(token, theme.palette);
+    }
+    return resolveTextColorToken(token, undefined, {
+      textColor: theme.textColor,
+      backgroundColor: theme.backgroundColor,
+    });
   }
 
-  // If palette exists, use it
+  // Fallback: calculate readable color based on background
   if (theme.palette) {
-    return resolveTextColorToken(token, theme.palette);
+    const bgColor = resolveSectionBackground(section, theme);
+    return getReadableTextColor(bgColor, theme.palette);
   }
 
-  // Legacy fallback
-  return resolveTextColorToken(token, undefined, {
-    textColor: theme.textColor,
-    backgroundColor: theme.backgroundColor,
-  });
+  return theme.textColor;
 }
 
 /**

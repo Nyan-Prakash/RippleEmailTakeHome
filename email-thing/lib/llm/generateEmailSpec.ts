@@ -12,6 +12,7 @@ import {
   normalizeCampaignIntent,
   normalizeEmailPlan,
 } from "../normalize/llmToApiSchemas";
+import { enhanceThemeWithAccessibleColors } from "../theme/deriveTheme";
 
 const MAX_ATTEMPTS = 3;
 
@@ -55,23 +56,33 @@ export async function generateEmailSpec(args: {
   plan: LLMEmailPlan;
   llmClient?: GenerateEmailSpecLLMClient;
 }): Promise<{ spec: EmailSpec; warnings: ValidationIssue[] }> {
+  console.log(`[generateEmailSpec] ========== STARTING EMAIL SPEC GENERATION ==========`);
   const { brandContext, intent, plan, llmClient } = args;
 
   if (!llmClient) {
+    console.error(`[generateEmailSpec] No LLM client provided`);
     throw createLLMError("LLM_CONFIG_MISSING", "LLM client is required");
   }
 
+  console.log(`[generateEmailSpec] Brand: ${brandContext.brand?.name || 'Unknown'}`);
+  console.log(`[generateEmailSpec] Intent type: ${intent.type}`);
+  console.log(`[generateEmailSpec] Plan has ${plan.sections?.length || 0} sections`);
+
   // Normalize LLM schemas to API schemas for validation
+  console.log(`[generateEmailSpec] Normalizing schemas...`);
   const normalizedIntent = normalizeCampaignIntent(intent);
   const normalizedPlan = normalizeEmailPlan(plan, intent);
+  console.log(`[generateEmailSpec] Schemas normalized successfully`);
 
   let previousSpec: string | null = null;
   let previousErrors: string[] = [];
   const errorHistory = new Set<string>();
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    console.log(`[generateEmailSpec] Starting attempt ${attempt}/${MAX_ATTEMPTS}`);
     const temperature = getTemperatureForAttempt(attempt);
     
+    console.log(`[generateEmailSpec] Building prompts for attempt ${attempt}`);
     const systemPrompt = buildSystemPrompt();
     const userPrompt = buildUserPrompt({
       brandContext,
@@ -82,6 +93,7 @@ export async function generateEmailSpec(args: {
       previousErrors,
     });
 
+    console.log(`[generateEmailSpec] Calling LLM with temperature ${temperature}`);
     try {
       const response = await llmClient.chat.completions.create({
         model: "gpt-4o-mini",
@@ -94,16 +106,22 @@ export async function generateEmailSpec(args: {
         response_format: { type: "json_object" },
       });
 
+      console.log(`[generateEmailSpec] LLM response received, attempt ${attempt}`);
       const content = response.choices[0]?.message?.content;
       if (!content) {
+        console.error(`[generateEmailSpec] Empty LLM response on attempt ${attempt}`);
         throw createLLMError("LLM_OUTPUT_INVALID", "LLM returned empty response");
       }
 
+      console.log(`[generateEmailSpec] Parsing JSON response (length: ${content.length})`);
       // Parse JSON
       let parsedJson: unknown;
       try {
         parsedJson = JSON.parse(content);
+        console.log(`[generateEmailSpec] JSON parsed successfully`);
       } catch (parseError) {
+        console.error(`[generateEmailSpec] JSON parse error on attempt ${attempt}:`, (parseError as Error).message);
+        console.error(`[generateEmailSpec] First 200 chars of content:`, content.substring(0, 200));
         previousSpec = content;
         previousErrors = [`Invalid JSON: ${(parseError as Error).message}`];
         
@@ -118,6 +136,7 @@ export async function generateEmailSpec(args: {
       }
 
       // Validate with Zod schema
+      console.log(`[generateEmailSpec] Validating with Zod schema`);
       const zodResult = EmailSpecSchema.safeParse(parsedJson);
       
       if (!zodResult.success) {
@@ -125,18 +144,23 @@ export async function generateEmailSpec(args: {
           (err) => `${err.path.join(".")}: ${err.message}`
         );
         
+        console.warn(`[generateEmailSpec] Zod validation failed on attempt ${attempt}:`);
+        zodErrors.forEach((err, i) => console.warn(`  ${i + 1}. ${err}`));
+        
         previousSpec = content;
         previousErrors = zodErrors;
         
         // Check for repeated errors
         const errorSignature = zodErrors.join("|");
         if (errorHistory.has(errorSignature)) {
+          console.error(`[generateEmailSpec] Repeated error detected:`, errorSignature);
           throw createLLMError(
             "LLM_OUTPUT_INVALID",
             `Same validation errors appeared multiple times: ${zodErrors.join("; ")}`
           );
         }
         errorHistory.add(errorSignature);
+        console.log(`[generateEmailSpec] Error signature added to history. Total unique errors: ${errorHistory.size}`);
         
         if (attempt === MAX_ATTEMPTS) {
           throw createLLMError(
@@ -147,9 +171,11 @@ export async function generateEmailSpec(args: {
         continue;
       }
 
+      console.log(`[generateEmailSpec] Zod validation passed`);
       const spec = zodResult.data;
 
       // Structural validation (use normalized schemas)
+      console.log(`[generateEmailSpec] Running structural validation`);
       const structuralResult = validateEmailSpecStructure({
         spec,
         brandContext,
@@ -159,11 +185,16 @@ export async function generateEmailSpec(args: {
 
       const blockingErrors = structuralResult.issues.filter(i => i.severity === "error");
       const warnings = structuralResult.issues.filter(i => i.severity === "warning");
+      
+      console.log(`[generateEmailSpec] Structural validation complete: ${blockingErrors.length} errors, ${warnings.length} warnings`);
 
       if (blockingErrors.length > 0) {
         const errorMessages = blockingErrors.map(
           issue => `[${issue.code}] ${issue.message}${issue.path ? ` (${issue.path})` : ""}`
         );
+        
+        console.warn(`[generateEmailSpec] Structural errors on attempt ${attempt}:`);
+        errorMessages.forEach((err, i) => console.warn(`  ${i + 1}. ${err}`));
         
         previousSpec = content;
         previousErrors = errorMessages;
@@ -178,21 +209,33 @@ export async function generateEmailSpec(args: {
         // Check for repeated structural errors (allow one retry per unique error)
         const errorSignature = blockingErrors.map(e => e.code).join("|");
         if (errorHistory.has(errorSignature)) {
+          console.error(`[generateEmailSpec] Repeated structural error detected:`, errorSignature);
           throw createLLMError(
             "LLM_OUTPUT_INVALID",
             `Same structural errors appeared multiple times: ${errorMessages.join("; ")}`
           );
         }
         errorHistory.add(errorSignature);
+        console.log(`[generateEmailSpec] Structural error signature added to history. Total unique errors: ${errorHistory.size}`);
+        console.log(`[generateEmailSpec] Continuing to attempt ${attempt + 1}`);
         
         continue;
       }
 
-      // Success! Return spec with warnings
-      return { spec, warnings };
+      // Success! Enhance theme with accessible colors, then return spec with warnings
+      console.log(`[generateEmailSpec] ✅ SUCCESS on attempt ${attempt}! Enhancing theme...`);
+      const enhancedSpec = {
+        ...spec,
+        theme: enhanceThemeWithAccessibleColors(spec.theme),
+      };
+      console.log(`[generateEmailSpec] Returning spec with ${warnings.length} warnings`);
+      return { spec: enhancedSpec, warnings };
 
     } catch (error) {
+      console.error(`[generateEmailSpec] Exception caught on attempt ${attempt}:`, error);
+      
       if (error instanceof Error && error.name === "LLMError") {
+        console.error(`[generateEmailSpec] LLMError thrown, propagating up`);
         throw error;
       }
       
@@ -204,6 +247,7 @@ export async function generateEmailSpec(args: {
           error.name === "TimeoutError" ||
           error.name === "APIConnectionTimeoutError")
       ) {
+        console.error(`[generateEmailSpec] Timeout error detected`);
         throw createLLMError(
           "LLM_TIMEOUT",
           "LLM request timed out",
@@ -212,6 +256,7 @@ export async function generateEmailSpec(args: {
       }
       
       if (attempt === MAX_ATTEMPTS) {
+        console.error(`[generateEmailSpec] Max attempts reached with error`);
         throw createLLMError(
           "LLM_FAILED",
           `Failed to generate EmailSpec after ${MAX_ATTEMPTS} attempts`,
@@ -220,10 +265,12 @@ export async function generateEmailSpec(args: {
       }
       
       // Continue to next attempt
+      console.warn(`[generateEmailSpec] Request failed, will retry. Error: ${(error as Error).message}`);
       previousErrors = [`Request failed: ${(error as Error).message}`];
     }
   }
 
+  console.error(`[generateEmailSpec] Loop completed without success or error - this should not happen`);
   throw createLLMError(
     "LLM_OUTPUT_INVALID",
     "Failed to generate valid EmailSpec after all attempts"
@@ -293,7 +340,11 @@ REQUIRED EMAILSPEC STRUCTURE:
         "paddingY": number
       },
       "blocks": [ /* blocks go here */ ],
-      "layout": { /* optional two-column or grid layout */ }
+      "layout": {
+        "variant": "single" | "twoColumn" | "grid",
+        // For twoColumn: "columns": [{"width": "50%", "blocks": [...]}, {"width": "50%", "blocks": [...]}]
+        // For grid: "columns": 2 | 3, "gap": number
+      }
     }
   ],
   "catalog": { "items": [...products from brand context...] }
@@ -353,14 +404,45 @@ CRITICAL RULES:
 8. Include at least one button with text and href
 9. All section IDs must be unique
 10. LAYOUT RULES:
-    - Single column (default): Put blocks in section.blocks array
-    - Two columns: Put blocks in layout.columns[0].blocks and layout.columns[1].blocks, set section.blocks to []
-    - Grid: Put blocks in section.blocks array (renderer will distribute them)
+    - Single column (default): Omit layout field OR set {"variant": "single"}, put blocks in section.blocks array
+    - Two columns: {"variant": "twoColumn", "columns": [{"width": "50%", "blocks": [...]}, {"width": "50%", "blocks": [...]}]}, set section.blocks to []
+    - Grid: {"variant": "grid", "columns": 2 or 3, "gap": 16}, put blocks in section.blocks array
+    - CRITICAL: variant must be EXACTLY "single", "twoColumn", or "grid" (case-sensitive, no spaces)
 
 EXAMPLE SECTION SEQUENCES:
 Launch campaign: announcementBar → navHeader → hero → benefitsList → storySection → socialProofGrid → productGrid → faq → secondaryCTA → footer
 Sale campaign: announcementBar → header → hero → productGrid → benefitsList → testimonial → secondaryCTA → legalFinePrint → footer
 Newsletter: header → hero → storySection → feature → feature → benefitsList → secondaryCTA → footer
+
+LAYOUT EXAMPLES:
+Single column section (most common):
+{
+  "id": "hero-01",
+  "type": "hero",
+  "blocks": [{"type": "heading", "text": "Welcome"}, {"type": "button", "text": "Shop Now", "href": "..."}]
+}
+
+Two-column section:
+{
+  "id": "feature-01",
+  "type": "feature",
+  "layout": {
+    "variant": "twoColumn",
+    "columns": [
+      {"width": "50%", "blocks": [{"type": "image", "src": "...", "alt": "..."}]},
+      {"width": "50%", "blocks": [{"type": "heading", "text": "..."}, {"type": "paragraph", "text": "..."}]}
+    ]
+  },
+  "blocks": []
+}
+
+Grid section:
+{
+  "id": "products-01",
+  "type": "productGrid",
+  "layout": {"variant": "grid", "columns": 3, "gap": 16},
+  "blocks": [{"type": "productCard", "productRef": "prod-1"}, {"type": "productCard", "productRef": "prod-2"}]
+}
 
 Generate ONLY valid JSON matching this structure. No markdown, no explanations.`;
 }
@@ -402,7 +484,7 @@ EMAIL PLAN (structure to transform):
 ${JSON.stringify(plan, null, 2)}
 
 TRANSFORM INTO EMAILSPEC WITH:
-- meta: { subject: "${plan.subject.primary}", preheader: "..." }
+- meta: { subject: "${plan.subject?.primary || "Compelling subject line"}", preheader: "..." }
 - theme: {
     containerWidth: 600,
     backgroundColor: brand background,
@@ -434,7 +516,7 @@ TRANSFORM INTO EMAILSPEC WITH:
 - catalog: { items: products from brandContext.catalog }
 
 REQUIREMENTS:
-- **7-12 sections minimum** for realistic emails (not just ${plan.sections.length})
+- **7-12 sections minimum** for realistic emails (not just ${plan.sections?.length || 3})
 - First section can be "announcementBar", "navHeader", or "header"
 - Last section must be type="footer" with smallPrint block containing "{{unsubscribe}}"
 - **ALTERNATE section.style.background** - avoid 3+ in a row with same token
@@ -468,6 +550,7 @@ ${JSON.stringify(plan, null, 2)}
 
 CRITICAL REPAIR INSTRUCTIONS (Attempt ${attempt}/${MAX_ATTEMPTS}):
 - Fix the errors listed above
+- If errors mention "layout.variant": Use EXACTLY "single", "twoColumn", or "grid" (case-sensitive)
 - If errors mention BACKGROUND_MONOTONY: alternate section.style.background tokens
 - If errors mention TOO_FEW_SECTIONS: expand to 7-12 sections
 - If errors mention MISSING_SECONDARY_CTA: add a secondaryCTA section before footer
