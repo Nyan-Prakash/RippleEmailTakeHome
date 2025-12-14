@@ -72,12 +72,23 @@ export const BrandSnippetsSchema = z
 export type BrandSnippets = z.infer<typeof BrandSnippetsSchema>;
 
 /**
+ * Hero image definition
+ */
+export const HeroImageSchema = z.object({
+  url: z.string().url("Hero image URL must be valid"),
+  alt: z.string().trim().default("Hero image"),
+});
+
+export type HeroImage = z.infer<typeof HeroImageSchema>;
+
+/**
  * Core brand information
  */
 export const BrandSchema = z.object({
   name: z.string().trim().min(1).default("Unknown Brand"),
   website: z.string().url("Brand website must be a valid URL"),
   logoUrl: z.string().trim().default(""),
+  heroImage: HeroImageSchema.optional(),
   colors: BrandColorsSchema,
   fonts: BrandFontsSchema,
   voiceHints: z.array(z.string().trim()).max(20).default([]),

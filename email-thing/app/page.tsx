@@ -324,6 +324,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           spec: emailSpec,
+          brandContext: brandContext, // Pass brandContext for hero image enhancement
         }),
       });
 

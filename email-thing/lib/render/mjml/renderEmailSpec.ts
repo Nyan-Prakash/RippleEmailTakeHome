@@ -85,9 +85,13 @@ function getFontSourceUrl(font: string | FontDef): string | undefined {
 /**
  * Render EmailSpec to MJML string
  * Pure and deterministic - no network calls
+ * 
+ * @param spec - The EmailSpec to render
+ * @param brandContext - Optional BrandContext for automatic brand enhancements (e.g., hero image)
  */
 export function renderEmailSpecToMjml(
-  spec: EmailSpec
+  spec: EmailSpec,
+  brandContext?: import("../../schemas/brand").BrandContext
 ): { mjml: string; warnings: RendererWarning[] } {
   const warnings: RendererWarning[] = [];
 
@@ -181,7 +185,7 @@ ${fontTags ? fontTags + "\n" : ""}    <mj-attributes>
     </mj-style>
   </mj-head>
   <mj-body background-color="${theme.backgroundColor}" width="${theme.containerWidth}px">
-${spec.sections.map((section) => renderSection(section, theme, catalogLookup, warnings)).join("\n")}
+${spec.sections.map((section) => renderSection(section, theme, catalogLookup, warnings, brandContext)).join("\n")}
   </mj-body>
 </mjml>
   `.trim();
@@ -228,7 +232,8 @@ function renderSection(
   section: Section,
   theme: any,
   catalogLookup: Map<string, Product>,
-  warnings: RendererWarning[]
+  warnings: RendererWarning[],
+  brandContext?: import("../../schemas/brand").BrandContext
 ): string {
   // Use token resolution for background and text colors
   const bgColor = resolveSectionBackground(section, theme);
@@ -240,16 +245,25 @@ function renderSection(
   const paddingX = padding.paddingX;
   const paddingY = padding.paddingY;
 
+  // Check if this is a header section (not hero) and we have a hero image
+  const isHeaderSection = section.type === "header" || section.type === "navHeader" || section.type === "announcementBar";
+  const shouldShowHeroImage = isHeaderSection && brandContext?.brand?.heroImage;
+  const heroImage = shouldShowHeroImage ? brandContext?.brand?.heroImage : null;
+
   // Handle layout
   const layout = section.layout || { variant: "single" };
 
   let columnsContent = "";
 
   if (layout.variant === "single") {
-    // Single column
+    // Single column with optional hero image at the top
+    const heroImageMjml = heroImage 
+      ? `      <mj-image src="${escapeHtml(heroImage.url)}" alt="${escapeHtml(heroImage.alt || brandContext?.brand?.name + ' hero image' || 'Hero image')}" fluid-on-mobile="true" padding="0 0 ${Math.max(paddingY - 8, 8)}px 0" />\n` 
+      : '';
+    
     columnsContent = `
     <mj-column>
-${section.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
+${heroImageMjml}${section.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
     </mj-column>
     `;
   } else if (layout.variant === "twoColumn") {
@@ -441,10 +455,10 @@ function renderHeadingBlock(block: any, theme: any, sectionType?: string, sectio
   // Add extra bold font-weight for header sections to increase contrast
   const fontWeight = isHeaderSection ? ' font-weight="700"' : ' font-weight="600"';
 
-  // Use section text color if provided, otherwise fall back to theme default
-  const colorAttr = sectionTextColor ? ` color="${sectionTextColor}"` : '';
+  // Always set explicit color - use section color if available, otherwise theme default
+  const textColor = sectionTextColor || theme.textColor;
 
-  return `      <mj-text align="${align}" font-size="${fontSize}"${fontWeight}${colorAttr} css-class="heading">${escapeHtml(block.text)}</mj-text>`;
+  return `      <mj-text align="${align}" font-size="${fontSize}"${fontWeight} color="${textColor}" css-class="heading">${escapeHtml(block.text)}</mj-text>`;
 }
 
 /**
@@ -452,8 +466,9 @@ function renderHeadingBlock(block: any, theme: any, sectionType?: string, sectio
  */
 function renderParagraphBlock(block: any, theme: any, sectionTextColor?: string): string {
   const align = block.align || "left";
-  const colorAttr = sectionTextColor ? ` color="${sectionTextColor}"` : '';
-  return `      <mj-text align="${align}"${colorAttr}>${escapeHtml(block.text)}</mj-text>`;
+  // Always set explicit color - use section color if available, otherwise theme default
+  const textColor = sectionTextColor || theme.textColor;
+  return `      <mj-text align="${align}" color="${textColor}">${escapeHtml(block.text)}</mj-text>`;
 }
 
 /**
@@ -602,8 +617,9 @@ function renderSpacerBlock(block: any): string {
  */
 function renderSmallPrintBlock(block: any, theme: any, sectionTextColor?: string): string {
   const align = block.align || "center";
-  const colorAttr = sectionTextColor ? ` color="${sectionTextColor}"` : '';
-  return `      <mj-text align="${align}"${colorAttr} css-class="small-print">${escapeHtml(block.text)}</mj-text>`;
+  // Always set explicit color - use section color if available, otherwise muted color
+  const textColor = sectionTextColor || theme.mutedTextColor;
+  return `      <mj-text align="${align}" color="${textColor}" css-class="small-print">${escapeHtml(block.text)}</mj-text>`;
 }
 
 /**

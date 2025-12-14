@@ -17,7 +17,8 @@ export const dynamic = "force-dynamic";
  * 
  * Request body:
  * {
- *   "spec": EmailSpec
+ *   "spec": EmailSpec,
+ *   "brandContext"?: BrandContext (optional - for hero image enhancement)
  * }
  * 
  * Response (200):
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
   try {
     // Parse request body
     const body = await request.json();
-    console.log("📦 Request body parsed, has spec:", !!body.spec);
+    console.log("📦 Request body parsed, has spec:", !!body.spec, "has brandContext:", !!body.brandContext);
 
     // Validate input with Zod
     const parseResult = EmailSpecSchema.safeParse(body.spec);
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
     }
 
     const spec = parseResult.data;
+    const brandContext = body.brandContext; // Optional BrandContext for hero image
 
     // Render EmailSpec to MJML
     let mjml: string;
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
     console.log("Starting MJML render for spec with", spec.sections.length, "sections");
 
     try {
-      const renderResult = renderEmailSpecToMjml(spec);
+      const renderResult = renderEmailSpecToMjml(spec, brandContext);
       mjml = renderResult.mjml;
       warnings = renderResult.warnings;
       console.log("MJML render successful, length:", mjml.length, "warnings:", warnings.length);

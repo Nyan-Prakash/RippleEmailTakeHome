@@ -14,10 +14,27 @@ export function BrandProfile({ brandContext }: BrandProfileProps) {
 
   return (
     <div className="space-y-6">
+      {/* Hero Image Section */}
+      {brand.heroImage && (
+        <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+          <img
+            src={brand.heroImage.url}
+            alt={brand.heroImage.alt || `${brand.name} hero image`}
+            className="w-full h-48 object-cover"
+            onError={(e) => {
+              e.currentTarget.parentElement!.style.display = "none";
+            }}
+          />
+          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
+            <p className="text-xs font-medium text-slate-700">Hero Image</p>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="flex items-start gap-4">
         {brand.logoUrl && (
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <img
               src={brand.logoUrl}
               alt={`${brand.name} logo`}

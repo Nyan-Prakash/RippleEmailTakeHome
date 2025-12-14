@@ -13,6 +13,7 @@ import { ScraperError, isScraperError } from "./errors";
 import { discoverLinks, selectTopCandidates } from "./discover";
 import { extractBrandName } from "./extract/brandName";
 import { extractLogoUrl } from "./extract/logo";
+import { extractHeroImage } from "./extract/heroImage";
 import { extractColors } from "./extract/colors";
 import { extractFonts } from "./extract/fonts";
 import { extractVoiceSnippets } from "./extract/voice";
@@ -57,6 +58,7 @@ export async function scrapeBrand(brandUrl: string): Promise<BrandContext> {
     // 4. Extract brand tokens
     const brandName = extractBrandName($, homepageUrl.hostname);
     const logoUrl = extractLogoUrl($, homepageUrl, brandName);
+    const heroImage = extractHeroImage($, homepageUrl, brandName);
     const colors = await extractColors(page, $);
     const fonts = await extractFonts(page);
     const voice = extractVoiceSnippets($);
@@ -158,6 +160,7 @@ export async function scrapeBrand(brandUrl: string): Promise<BrandContext> {
         name: brandName,
         website: homepageUrl.toString(),
         logoUrl: logoUrl,
+        heroImage: heroImage || undefined,
         colors: {
           primary: colors.primary,
           background: colors.background,
