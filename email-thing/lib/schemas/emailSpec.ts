@@ -101,11 +101,21 @@ export const ComponentsSchema = z.object({
 export type Components = z.infer<typeof ComponentsSchema>;
 
 /**
- * Font configuration
+ * Font definition with optional source URL
+ */
+export const FontDefSchema = z.object({
+  name: z.string().trim().min(1),
+  sourceUrl: z.string().url().optional(),
+});
+
+export type FontDef = z.infer<typeof FontDefSchema>;
+
+/**
+ * Font configuration (supports both string and FontDef object)
  */
 export const FontConfigSchema = z.object({
-  heading: z.string().trim().default("Arial"),
-  body: z.string().trim().default("Arial"),
+  heading: z.union([z.string().trim(), FontDefSchema]).default("Arial"),
+  body: z.union([z.string().trim(), FontDefSchema]).default("Arial"),
 });
 
 export type FontConfig = z.infer<typeof FontConfigSchema>;

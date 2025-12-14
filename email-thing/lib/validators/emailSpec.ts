@@ -434,14 +434,21 @@ export function validateEmailSpecStructure(args: {
   }
 
   // Theme drift - fonts
-  const brandHeadingFont = brandContext.brand.fonts.heading.toLowerCase();
-  const specHeadingFont = spec.theme.font.heading.toLowerCase();
+  const brandHeadingFontName = typeof brandContext.brand.fonts.heading === "string"
+    ? brandContext.brand.fonts.heading
+    : brandContext.brand.fonts.heading.name;
+  const specHeadingFontName = typeof spec.theme.font.heading === "string"
+    ? spec.theme.font.heading
+    : spec.theme.font.heading.name;
+
+  const brandHeadingFont = brandHeadingFontName.toLowerCase();
+  const specHeadingFont = specHeadingFontName.toLowerCase();
 
   if (brandHeadingFont !== specHeadingFont && !specHeadingFont.includes(brandHeadingFont.split(",")[0])) {
     issues.push({
       code: "THEME_FONT_DRIFT",
       severity: "warning",
-      message: `Spec heading font (${spec.theme.font.heading}) differs from brand font (${brandContext.brand.fonts.heading})`,
+      message: `Spec heading font (${specHeadingFontName}) differs from brand font (${brandHeadingFontName})`,
       path: "theme.font.heading",
     });
   }
@@ -552,6 +559,58 @@ export function validateEmailSpecStructure(args: {
       });
     }
   });
+
+  // 8. Font source URL warnings
+  const headingFont = spec.theme.font.heading;
+  const bodyFont = spec.theme.font.body;
+
+  // Check heading font
+  if (typeof headingFont === "object" && headingFont.name) {
+    if (!headingFont.sourceUrl && headingFont.name !== "Arial") {
+      issues.push({
+        code: "FONT_NO_SOURCE",
+        severity: "warning",
+        message: `Heading font "${headingFont.name}" provided but no font source URL; most email clients will fall back to system fonts`,
+        path: "theme.font.heading",
+      });
+    } else if (headingFont.sourceUrl) {
+      // Validate sourceUrl is a valid URL
+      try {
+        new URL(headingFont.sourceUrl);
+      } catch {
+        issues.push({
+          code: "INVALID_FONT_URL",
+          severity: "warning",
+          message: `Heading font source URL is invalid: ${headingFont.sourceUrl}`,
+          path: "theme.font.heading.sourceUrl",
+        });
+      }
+    }
+  }
+
+  // Check body font
+  if (typeof bodyFont === "object" && bodyFont.name) {
+    if (!bodyFont.sourceUrl && bodyFont.name !== "Arial") {
+      issues.push({
+        code: "FONT_NO_SOURCE",
+        severity: "warning",
+        message: `Body font "${bodyFont.name}" provided but no font source URL; most email clients will fall back to system fonts`,
+        path: "theme.font.body",
+      });
+    } else if (bodyFont.sourceUrl) {
+      // Validate sourceUrl is a valid URL
+      try {
+        new URL(bodyFont.sourceUrl);
+      } catch {
+        issues.push({
+          code: "INVALID_FONT_URL",
+          severity: "warning",
+          message: `Body font source URL is invalid: ${bodyFont.sourceUrl}`,
+          path: "theme.font.body.sourceUrl",
+        });
+      }
+    }
+  }
 
   return {
     ok: issues.filter(i => i.severity === "error").length === 0,

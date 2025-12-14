@@ -62,13 +62,13 @@ export function BrandProfile({ brandContext }: BrandProfileProps) {
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-600 w-20">Heading:</span>
             <code className="rounded bg-slate-100 px-2 py-1 text-sm text-slate-800">
-              {brand.fonts.heading}
+              {typeof brand.fonts.heading === "string" ? brand.fonts.heading : brand.fonts.heading.name}
             </code>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-600 w-20">Body:</span>
             <code className="rounded bg-slate-100 px-2 py-1 text-sm text-slate-800">
-              {brand.fonts.body}
+              {typeof brand.fonts.body === "string" ? brand.fonts.body : brand.fonts.body.name}
             </code>
           </div>
         </div>

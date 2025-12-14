@@ -32,12 +32,22 @@ export const BrandColorsSchema = z
 export type BrandColors = z.infer<typeof BrandColorsSchema>;
 
 /**
- * Brand fonts
+ * Brand font definition
+ */
+export const BrandFontSchema = z.object({
+  name: z.string().trim().min(1),
+  sourceUrl: z.string().url().optional(),
+});
+
+export type BrandFont = z.infer<typeof BrandFontSchema>;
+
+/**
+ * Brand fonts (heading and body)
  */
 export const BrandFontsSchema = z
   .object({
-    heading: z.string().trim().min(1),
-    body: z.string().trim().min(1),
+    heading: z.union([z.string().trim().min(1), BrandFontSchema]),
+    body: z.union([z.string().trim().min(1), BrandFontSchema]),
   })
   .default({
     heading: "Arial",

@@ -1,4 +1,4 @@
-import type { EmailSpec, Theme } from "../../schemas/emailSpec";
+import type { EmailSpec, Theme, FontDef } from "../../schemas/emailSpec";
 import type { Section, Layout } from "../../schemas/emailSpec";
 import type {
   Block,
@@ -56,6 +56,33 @@ export interface MjmlCompileResult {
 }
 
 /**
+ * Build a font-family stack with fallbacks
+ */
+function buildFontStack(font: string | FontDef): string {
+  const fallbacks = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif";
+
+  if (typeof font === "string") {
+    return `${font}, ${fallbacks}`;
+  }
+
+  return `${font.name}, ${fallbacks}`;
+}
+
+/**
+ * Get font name from string or FontDef object
+ */
+function getFontName(font: string | FontDef): string {
+  return typeof font === "string" ? font : font.name;
+}
+
+/**
+ * Get font source URL if available
+ */
+function getFontSourceUrl(font: string | FontDef): string | undefined {
+  return typeof font === "object" && "sourceUrl" in font ? font.sourceUrl : undefined;
+}
+
+/**
  * Render EmailSpec to MJML string
  * Pure and deterministic - no network calls
  */
@@ -93,19 +120,62 @@ export function renderEmailSpecToMjml(
     accessible: (spec.theme as any).accessible,  // Accessible colors from enhanceThemeWithAccessibleColors
   };
 
+  // Build font stacks
+  const bodyFontStack = buildFontStack(theme.font.body);
+  const headingFontStack = buildFontStack(theme.font.heading);
+
+  // Collect font sources for mj-font injection
+  const fontSources: Array<{ name: string; url: string }> = [];
+
+  const headingSourceUrl = getFontSourceUrl(theme.font.heading);
+  const bodySourceUrl = getFontSourceUrl(theme.font.body);
+
+  if (headingSourceUrl) {
+    fontSources.push({ name: getFontName(theme.font.heading), url: headingSourceUrl });
+  }
+
+  if (bodySourceUrl && bodySourceUrl !== headingSourceUrl) {
+    fontSources.push({ name: getFontName(theme.font.body), url: bodySourceUrl });
+  }
+
+  // Add warnings for fonts without source URLs
+  const headingName = getFontName(theme.font.heading);
+  const bodyName = getFontName(theme.font.body);
+
+  if (headingName !== "Arial" && !headingSourceUrl) {
+    warnings.push({
+      code: "FONT_NO_SOURCE",
+      message: `Heading font "${headingName}" provided but no font source URL; most clients will fall back to system fonts.`,
+      path: "theme.font.heading",
+    });
+  }
+
+  if (bodyName !== "Arial" && !bodySourceUrl) {
+    warnings.push({
+      code: "FONT_NO_SOURCE",
+      message: `Body font "${bodyName}" provided but no font source URL; most clients will fall back to system fonts.`,
+      path: "theme.font.body",
+    });
+  }
+
+  // Build font injection tags
+  const fontTags = fontSources
+    .map(({ name, url }) => `    <mj-font name="${escapeHtml(name)}" href="${escapeHtml(url)}" />`)
+    .join("\n");
+
   // Build MJML document
   const mjml = `
 <mjml>
   <mj-head>
     <mj-title>${escapeHtml(spec.meta.subject)}</mj-title>
     <mj-preview>${escapeHtml(spec.meta.preheader)}</mj-preview>
-    <mj-attributes>
-      <mj-all font-family="${escapeHtml(theme.font.body)}, Arial, sans-serif" />
+${fontTags ? fontTags + "\n" : ""}    <mj-attributes>
+      <mj-all font-family="${escapeHtml(bodyFontStack)}" />
       <mj-text font-size="16px" line-height="1.5" color="${theme.textColor}" />
-      <mj-button background-color="${theme.accessible?.buttonBackground || theme.primaryColor}" color="${theme.accessible?.buttonText || '#FFFFFF'}" border-radius="${theme.button.radius}px" font-weight="bold" />
+      <mj-button background-color="${theme.accessible?.buttonBackground || theme.primaryColor}" color="${theme.accessible?.buttonText || '#FFFFFF'}" border-radius="${theme.button.radius}px" font-weight="bold" font-family="${escapeHtml(bodyFontStack)}" />
     </mj-attributes>
     <mj-style>
-      .heading { font-family: ${escapeHtml(theme.font.heading)}, Arial, sans-serif; font-weight: bold; line-height: 1.2; }
+      .heading { font-family: ${escapeHtml(headingFontStack)}; font-weight: bold; line-height: 1.2; }
       .small-print { font-size: 12px; line-height: 1.4; color: ${theme.mutedTextColor}; }
       .product-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; background-color: ${theme.backgroundColor}; }
     </mj-style>

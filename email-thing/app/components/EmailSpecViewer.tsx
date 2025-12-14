@@ -113,11 +113,11 @@ export default function EmailSpecViewer({ spec, warnings = [] }: EmailSpecViewer
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Heading Font</label>
-            <p className="text-sm text-gray-900 mt-1">{spec.theme.font.heading}</p>
+            <p className="text-sm text-gray-900 mt-1">{typeof spec.theme.font.heading === "string" ? spec.theme.font.heading : spec.theme.font.heading.name}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Body Font</label>
-            <p className="text-sm text-gray-900 mt-1">{spec.theme.font.body}</p>
+            <p className="text-sm text-gray-900 mt-1">{typeof spec.theme.font.body === "string" ? spec.theme.font.body : spec.theme.font.body.name}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Container Width</label>
