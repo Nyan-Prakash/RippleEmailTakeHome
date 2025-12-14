@@ -1,0 +1,295 @@
+{
+  "meta": {
+    "subject": "Introducing Our New Collection",
+    "preheader": "Discover handcrafted pieces designed for modern living"
+  },
+  "theme": {
+    "containerWidth": 600,
+    "backgroundColor": "#FFFFFF",
+    "surfaceColor": "#F5F5F5",
+    "textColor": "#111111",
+    "mutedTextColor": "#666666",
+    "primaryColor": "#2E3A4D",
+    "font": {
+      "heading": "Georgia, serif",
+      "body": "Arial, sans-serif"
+    },
+    "palette": {
+      "primary": "#2E3A4D",
+      "ink": "#111111",
+      "bg": "#FFFFFF",
+      "surface": "#F5F5F5",
+      "muted": "#E0E0E0",
+      "accent": "#8B7355",
+      "primarySoft": "#E8EAED",
+      "accentSoft": "#F5F3F0"
+    },
+    "rhythm": {
+      "sectionGap": 24,
+      "contentPaddingX": 16,
+      "contentPaddingY": 24
+    },
+    "button": {
+      "radius": 4,
+      "style": "solid",
+      "paddingY": 14,
+      "paddingX": 28
+    },
+    "components": {
+      "button": {
+        "radius": 4,
+        "style": "solid",
+        "paddingY": 14,
+        "paddingX": 28
+      },
+      "card": {
+        "radius": 8,
+        "border": "none",
+        "shadow": "none"
+      }
+    }
+  },
+  "sections": [
+    {
+      "id": "header-01",
+      "type": "navHeader",
+      "variant": "centered",
+      "style": {
+        "background": "base",
+        "paddingY": 20
+      },
+      "blocks": [
+        {
+          "type": "logo",
+          "src": "https://via.placeholder.com/150x50/2E3A4D/FFFFFF?text=Brand+Logo",
+          "href": "https://example.com",
+          "align": "center"
+        },
+        {
+          "type": "navLinks",
+          "links": [
+            {"label": "Shop", "url": "https://example.com/shop"},
+            {"label": "About", "url": "https://example.com/about"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hero-01",
+      "type": "hero",
+      "style": {
+        "background": "brandTint",
+        "paddingY": 48
+      },
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "Handcrafted for You",
+          "level": 1,
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "Explore our new collection of thoughtfully designed pieces that bring warmth and character to your space.",
+          "align": "center"
+        },
+        {
+          "type": "button",
+          "text": "Shop Collection",
+          "href": "https://example.com/collection",
+          "variant": "primary",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "features-01",
+      "type": "featureGrid",
+      "style": {
+        "background": "alt",
+        "paddingY": 40
+      },
+      "layout": {
+        "variant": "grid",
+        "columns": 3,
+        "gap": 16
+      },
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "🌿 Sustainable",
+          "level": 3,
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "Ethically sourced materials",
+          "align": "center"
+        },
+        {
+          "type": "heading",
+          "text": "✨ Quality",
+          "level": 3,
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "Built to last generations",
+          "align": "center"
+        },
+        {
+          "type": "heading",
+          "text": "🎨 Design",
+          "level": 3,
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "Timeless aesthetics",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "spotlight-01",
+      "type": "productSpotlight",
+      "style": {
+        "background": "base",
+        "paddingY": 48
+      },
+      "layout": {
+        "variant": "twoColumn",
+        "columns": [
+          {
+            "width": "50%",
+            "blocks": [
+              {
+                "type": "image",
+                "src": "https://via.placeholder.com/400x500/8B7355/FFFFFF?text=Featured+Product",
+                "alt": "Featured product"
+              }
+            ]
+          },
+          {
+            "width": "50%",
+            "blocks": [
+              {
+                "type": "badge",
+                "text": "New Arrival",
+                "tone": "accent"
+              },
+              {
+                "type": "heading",
+                "text": "Artisan Oak Table",
+                "level": 2
+              },
+              {
+                "type": "priceLine",
+                "price": "$1,299",
+                "compareAt": "$1,599",
+                "savingsText": "Save $300"
+              },
+              {
+                "type": "bullets",
+                "items": [
+                  "Solid oak construction",
+                  "Hand-finished surface",
+                  "Seats 6-8 people",
+                  "Free shipping included"
+                ],
+                "icon": "✓"
+              },
+              {
+                "type": "button",
+                "text": "Shop Collection",
+                "href": "https://example.com/oak-table",
+                "variant": "primary"
+              }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "testimonial-01",
+      "type": "testimonialCard",
+      "style": {
+        "background": "accentSoft",
+        "paddingY": 36
+      },
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "\"The quality is exceptional. Each piece tells a story and brings so much character to our home.\"",
+          "align": "center"
+        },
+        {
+          "type": "rating",
+          "value": 5,
+          "count": 127,
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "— Sarah M., Seattle",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "cta-banner-01",
+      "type": "ctaBanner",
+      "style": {
+        "background": "brandSolid",
+        "paddingY": 48
+      },
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "Visit Our Showroom",
+          "level": 2,
+          "align": "center"
+        },
+        {
+          "type": "paragraph",
+          "text": "Experience the craftsmanship in person. Book an appointment today.",
+          "align": "center"
+        },
+        {
+          "type": "button",
+          "text": "Shop Collection",
+          "href": "https://example.com/collection",
+          "variant": "primary",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "footer-01",
+      "type": "footer",
+      "style": {
+        "background": "surface",
+        "paddingY": 32
+      },
+      "blocks": [
+        {
+          "type": "socialIcons",
+          "links": [
+            {"network": "instagram", "url": "https://instagram.com/brand"},
+            {"network": "facebook", "url": "https://facebook.com/brand"}
+          ],
+          "align": "center"
+        },
+        {
+          "type": "smallPrint",
+          "text": "© 2025 Brand Inc. | 123 Main St, City, State 12345 | {{unsubscribe}}",
+          "align": "center"
+        }
+      ]
+    }
+  ],
+  "catalog": {
+    "items": []
+  }
+}

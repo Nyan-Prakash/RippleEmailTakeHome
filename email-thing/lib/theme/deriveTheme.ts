@@ -157,9 +157,12 @@ export function getReadableTextColor(backgroundColor: string, palette: Palette):
 
 /**
  * Get accessible button colors
- * Ensures WCAG AA 3:1 minimum contrast for UI components
+ * Ensures WCAG AA 4.5:1 minimum contrast for better readability
+ * Also ensures button is visible against page background (3:1 minimum)
+ * @param theme - The theme object
+ * @param contextBackground - Optional background color context (e.g., section background). If provided, ensures button contrasts with this instead of page background.
  */
-export function getButtonColors(theme: any): { bg: string, text: string } {
+export function getButtonColors(theme: any, contextBackground?: string): { bg: string, text: string } {
   const buttonBg = theme.palette?.primary || theme.primaryColor;
   const palette = theme.palette || {
     bg: theme.backgroundColor,
@@ -172,25 +175,55 @@ export function getButtonColors(theme: any): { bg: string, text: string } {
     accentSoft: lighten(theme.primaryColor, 0.8),
   };
 
-  const candidateTexts = [
-    palette.bg || theme.backgroundColor,
-    palette.ink || theme.textColor,
-    '#FFFFFF',
-    '#000000'
-  ];
+  // Use section background if provided, otherwise fall back to page background
+  const pageBackground = contextBackground || palette.bg || theme.backgroundColor;
 
-  // Find first candidate with 3:1 contrast (WCAG AA for UI components)
-  for (const textColor of candidateTexts) {
-    if (getContrastRatio(buttonBg, textColor) >= 3.0) {
-      return { bg: buttonBg, text: textColor };
+  // Check if button background has enough contrast with page background
+  // Buttons need to be visually distinct (3:1 minimum for UI components)
+  const buttonToPageContrast = getContrastRatio(buttonBg, pageBackground);
+  const needsAdjustment = buttonToPageContrast < 3.0;
+
+  // If button is too similar to page background, adjust it
+  let finalButtonBg = buttonBg;
+  if (needsAdjustment) {
+    const bgLuminance = getLuminance(buttonBg);
+    const pageLuminance = getLuminance(pageBackground);
+
+    // Make button significantly darker or lighter to stand out
+    if (bgLuminance > 0.5) {
+      // Button is light, darken it significantly
+      finalButtonBg = darken(buttonBg, 0.6);
+    } else {
+      // Button is dark, lighten it significantly
+      finalButtonBg = lighten(buttonBg, 0.6);
+    }
+
+    // If still not enough contrast, use high-contrast fallback
+    if (getContrastRatio(finalButtonBg, pageBackground) < 3.0) {
+      // Use opposite of page background
+      finalButtonBg = pageLuminance > 0.5 ? '#111111' : '#EEEEEE';
     }
   }
 
-  // Fallback: adjust button bg to ensure contrast
-  const bgLuminance = getLuminance(buttonBg);
-  const adjustedBg = bgLuminance > 0.5 ? darken(buttonBg, 0.3) : lighten(buttonBg, 0.3);
+  // Now find text color that contrasts well with the (possibly adjusted) button background
+  const candidateTexts = [
+    '#FFFFFF',      // Try white first
+    '#000000',      // Then black
+    palette.bg || theme.backgroundColor,
+    palette.ink || theme.textColor,
+  ];
+
+  // Find first candidate with 4.5:1 contrast for text readability
+  for (const textColor of candidateTexts) {
+    if (getContrastRatio(finalButtonBg, textColor) >= 4.5) {
+      return { bg: finalButtonBg, text: textColor };
+    }
+  }
+
+  // Fallback: use high-contrast black or white
+  const bgLuminance = getLuminance(finalButtonBg);
   return {
-    bg: adjustedBg,
+    bg: finalButtonBg,
     text: bgLuminance > 0.5 ? '#000000' : '#FFFFFF'
   };
 }
@@ -320,6 +353,11 @@ export function enhanceThemeWithAccessibleColors(theme: any): any {
     onPrimarySoft: getReadableTextColor(palette.primarySoft, palette),
     onAccentSoft: getReadableTextColor(palette.accentSoft, palette),
     onMuted: getReadableTextColor(palette.muted, palette),
+    // v2 tokens
+    onBase: getReadableTextColor(palette.bg, palette),
+    onAlt: getReadableTextColor(palette.surface, palette),
+    onBrandTint: getReadableTextColor(palette.primarySoft, palette),
+    onBrandSolid: getReadableTextColor(palette.primary, palette),
   };
 
   // Adjust button colors if needed to meet 3:1 contrast minimum
@@ -365,8 +403,17 @@ export function resolveBackgroundToken(
 
   // Use new palette
   switch (token) {
+    // v2 preferred tokens
+    case "base":
     case "bg":
       return palette.bg;
+    case "alt":
+      return palette.surface; // alt is a lighter neutral
+    case "brandTint":
+      return palette.primarySoft; // Brand with low opacity
+    case "brandSolid":
+      return palette.primary; // Full brand color
+    // Existing tokens
     case "surface":
       return palette.surface;
     case "muted":

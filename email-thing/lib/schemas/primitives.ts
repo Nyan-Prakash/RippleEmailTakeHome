@@ -5,6 +5,7 @@ import { z } from "zod";
  * These map to high-level email structure components
  */
 export const SectionTypeSchema = z.enum([
+  // Original types
   "header",
   "hero",
   "feature",
@@ -12,7 +13,7 @@ export const SectionTypeSchema = z.enum([
   "testimonial",
   "trustBar",
   "footer",
-  // New section types
+  // Existing enhanced types
   "announcementBar",
   "navHeader",
   "benefitsList",
@@ -21,6 +22,16 @@ export const SectionTypeSchema = z.enum([
   "faq",
   "secondaryCTA",
   "legalFinePrint",
+  // NEW v2 section types
+  "sectionTitle",
+  "featureGrid",
+  "productSpotlight",
+  "comparison",
+  "metricStrip",
+  "testimonialCard",
+  "ctaBanner",
+  "faqMini",
+  "dividerBand",
 ]);
 
 export type SectionType = z.infer<typeof SectionTypeSchema>;
@@ -90,12 +101,17 @@ export type Tone = z.infer<typeof ToneSchema>;
  * Background type for sections (tokenized backgrounds)
  */
 export const BackgroundTypeSchema = z.enum([
+  // Legacy tokens (backward compatible)
   "brand",
-  "surface",
   "transparent",
-  // New background tokens
-  "bg",
-  "muted",
+  // Standard v2 background tokens
+  "base",      // Base background (white/light)
+  "alt",       // Alternate background (light gray)
+  "surface",   // Surface background
+  "bg",        // Alias for base
+  "muted",     // Muted background
+  "brandTint", // Brand color with low opacity
+  "brandSolid", // Full brand color
   "primarySoft",
   "accentSoft",
   "primary",
@@ -128,6 +144,13 @@ export type Alignment = z.infer<typeof AlignmentSchema>;
 
 /**
  * Heading levels (h1, h2, h3)
+ * 
+ * Header sections (header, navHeader, announcementBar) render with significantly larger fonts:
+ * - h1: 48px (vs 32px in other sections)
+ * - h2: 36px (vs 28px in other sections)
+ * - h3: 30px (vs 24px in other sections)
+ * 
+ * This ensures headers are the most eye-catching elements with the greatest visual contrast
  */
 export const HeadingLevelSchema = z.union([
   z.literal(1),
@@ -209,3 +232,54 @@ export const SocialNetworkSchema = z.enum([
 ]);
 
 export type SocialNetwork = z.infer<typeof SocialNetworkSchema>;
+
+/**
+ * Section padding size tokens (v2)
+ */
+export const PaddingYTokenSchema = z.enum(["sm", "md", "lg"]);
+
+export type PaddingYToken = z.infer<typeof PaddingYTokenSchema>;
+
+/**
+ * Content width tokens (v2)
+ */
+export const ContentWidthTokenSchema = z.enum(["full", "narrow"]);
+
+export type ContentWidthToken = z.infer<typeof ContentWidthTokenSchema>;
+
+/**
+ * Corner radius tokens (v2)
+ */
+export const CornerRadiusTokenSchema = z.enum(["none", "sm", "md"]);
+
+export type CornerRadiusToken = z.infer<typeof CornerRadiusTokenSchema>;
+
+/**
+ * Section divider tokens (v2)
+ */
+export const SectionDividerTokenSchema = z.enum(["none", "hairline", "spacer"]);
+
+export type SectionDividerToken = z.infer<typeof SectionDividerTokenSchema>;
+
+/**
+ * Header variant types (v2)
+ */
+export const HeaderVariantSchema = z.enum([
+  "minimal",
+  "brandBar",
+  "centered",
+  "withUtilityLinks",
+]);
+
+export type HeaderVariant = z.infer<typeof HeaderVariantSchema>;
+
+/**
+ * Footer variant types (v2)
+ */
+export const FooterVariantSchema = z.enum([
+  "minimalCompliance",
+  "supportFocused",
+  "socialLight",
+]);
+
+export type FooterVariant = z.infer<typeof FooterVariantSchema>;

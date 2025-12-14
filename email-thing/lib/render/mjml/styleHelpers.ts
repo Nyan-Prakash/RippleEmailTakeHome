@@ -1,5 +1,5 @@
 import type { Theme, Section } from "../../schemas/emailSpec";
-import { resolveBackgroundToken, resolveTextColorToken, getReadableTextColor } from "../../theme/deriveTheme";
+import { resolveBackgroundToken, resolveTextColorToken, getReadableTextColor, getContrastRatio } from "../../theme/deriveTheme";
 
 /**
  * Resolve section background color from token or legacy value
@@ -34,6 +34,7 @@ export function resolveSectionTextColor(section: Section, theme: any): string {
   // If theme has accessible colors, use them for automatic contrast
   if (theme.accessible) {
     const accessibleTextMap: Record<string, string> = {
+      // Legacy tokens
       bg: theme.palette?.ink || theme.textColor,
       surface: theme.accessible.onSurface,
       muted: theme.accessible.onMuted || theme.palette?.ink || theme.textColor,
@@ -44,9 +45,28 @@ export function resolveSectionTextColor(section: Section, theme: any): string {
       transparent: theme.palette?.ink || theme.textColor,
       brand: theme.accessible.onPrimary,
       image: theme.palette?.bg || theme.backgroundColor,
+      // v2 tokens
+      base: theme.palette?.ink || theme.textColor,
+      alt: theme.accessible.onAlt || theme.palette?.ink || theme.textColor,
+      brandTint: theme.accessible.onBrandTint || theme.palette?.ink || theme.textColor,
+      brandSolid: theme.accessible.onBrandSolid || theme.accessible.onPrimary || theme.backgroundColor,
     };
 
-    return accessibleTextMap[bgToken] || theme.textColor;
+    const textColor = accessibleTextMap[bgToken] || theme.textColor;
+
+    // Safety check: verify the text color actually contrasts with the background
+    // This prevents black-on-black or white-on-white issues
+    if (theme.palette) {
+      const bgColor = resolveSectionBackground(section, theme);
+      const contrast = getContrastRatio(bgColor, textColor);
+
+      // If contrast is too low (less than 4.5:1 for text), recalculate
+      if (contrast < 4.5) {
+        return getReadableTextColor(bgColor, theme.palette);
+      }
+    }
+
+    return textColor;
   }
 
   // If explicit text token is provided, use it

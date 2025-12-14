@@ -140,14 +140,29 @@ export type Theme = z.infer<typeof ThemeSchema>;
 
 /**
  * Section style (padding, background, text color, container, divider)
+ * v2: Enhanced with token-based padding and width options
  */
 export const SectionStyleSchema = z.object({
+  // Legacy numeric padding (backward compatible)
   paddingX: z.number().int().min(0).max(64).optional(),
   paddingY: z.number().int().min(0).max(64).optional(),
+  // v2: Token-based padding (preferred)
+  paddingYToken: z.enum(["sm", "md", "lg"]).optional(),
+  // Background token
   background: BackgroundTypeSchema.optional(),
+  // Text color token
   text: TextColorTokenSchema.optional(),
+  // Container style
   container: ContainerStyleSchema.optional(),
+  // Legacy divider (backward compatible)
   divider: DividerPositionSchema.optional(),
+  // v2: Content width
+  contentWidth: z.enum(["full", "narrow"]).optional(),
+  // v2: Border radius
+  borderRadius: z.enum(["none", "sm", "md"]).optional(),
+  // v2: Section dividers
+  dividerTop: z.enum(["none", "hairline", "spacer"]).optional(),
+  dividerBottom: z.enum(["none", "hairline", "spacer"]).optional(),
 });
 
 export type SectionStyle = z.infer<typeof SectionStyleSchema>;
@@ -240,13 +255,15 @@ export const EmailSpecSchema = z
   .superRefine((data, ctx) => {
     // Check for required header and footer sections
     const sectionTypes = data.sections.map((s) => s.type);
-    const hasHeader = sectionTypes.includes("header");
+    // v2: Allow header, navHeader, or announcementBar as valid header types
+    const headerTypes = ["header", "navHeader", "announcementBar"];
+    const hasHeader = sectionTypes.some(type => headerTypes.includes(type));
     const hasFooter = sectionTypes.includes("footer");
 
     if (!hasHeader) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Must include at least one 'header' section",
+        message: "Must include at least one header section (header, navHeader, or announcementBar)",
         path: ["sections"],
       });
     }

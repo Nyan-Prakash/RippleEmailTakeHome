@@ -314,7 +314,7 @@ REQUIRED EMAILSPEC STRUCTURE:
     "textColor": "hex color",
     "mutedTextColor": "hex color",
     "primaryColor": "hex color",
-    "font": { "heading": "string", "body": "string" },
+    "font": { "heading": "string (use brand.fonts.heading)", "body": "string (use brand.fonts.body)" },
     "button": { "radius": number, "style": "solid" | "outline" | "soft", "paddingY": number, "paddingX": number },
     "palette": {
       "primary": "hex", "ink": "hex", "bg": "hex", "surface": "hex",
@@ -351,25 +351,43 @@ REQUIRED EMAILSPEC STRUCTURE:
 }
 
 SECTION TYPES GUIDE:
+**Header Types (use ONE at start):**
 - "announcementBar": Top banner with short text + optional link (e.g., "Free shipping on orders over $50")
 - "navHeader": Logo + navigation links + optional preheader text
 - "header": Standard logo header
+
+**Main Content Sections:**
 - "hero": Main banner with headline, image, CTA
 - "benefitsList": Headline + bullet points highlighting features/benefits
 - "feature": Feature highlight section
+- "featureGrid": 2-3 benefit blocks with icons (NEW v2)
 - "storySection": Image + headline + paragraph + link (use for brand story, about, etc.)
 - "productGrid": Product showcase
+- "productSpotlight": Single product card + bullets + CTA (NEW v2)
+- "comparison": Before/after or without/with in 2 columns (NEW v2)
 - "socialProofGrid": Grid of logos (press, partners, certifications)
 - "testimonial": Customer testimonials
+- "testimonialCard": Quote + person + company (NEW v2)
 - "trustBar": Trust badges
+- "metricStrip": 1-3 big metrics/stats (NEW v2)
 - "faq": 3-6 Q&A pairs
+- "faqMini": 2-4 Q&A rows (NEW v2)
+- "sectionTitle": Tiny kicker + title (NEW v2)
+- "dividerBand": Visual rhythm section (NEW v2)
+
+**CTA Sections:**
 - "secondaryCTA": Colored band with headline + button (use mid-email or before footer)
+- "ctaBanner": High-contrast CTA moment (NEW v2)
+
+**Footer Types:**
 - "legalFinePrint": Small text with links (terms, privacy)
-- "footer": Footer with unsubscribe
+- "footer": Footer with unsubscribe (REQUIRED at end)
 
 BLOCK TYPES:
   { "type": "logo", "src": "url", "href": "url optional" }
   { "type": "heading", "text": "string", "level": 1-3, "align": "left"|"center"|"right" }
+    NOTE: Header sections (header/navHeader/announcementBar) render at 48px for level 1, making them the most eye-catching element in the email
+    Hero and other sections use 32px for level 1. Always use level: 1 for main headers to ensure maximum visual impact.
   { "type": "paragraph", "text": "string", "align": "left"|"center"|"right" }
   { "type": "image", "src": "url", "alt": "text", "href": "url optional" }
   { "type": "button", "text": "string", "href": "url", "variant": "primary"|"secondary" }
@@ -384,35 +402,35 @@ BLOCK TYPES:
   { "type": "spacer", "size": number }
   { "type": "smallPrint", "text": "string (must include {{unsubscribe}} in footer)" }
 
-CRITICAL RULES:
-1. Generate **7-12 sections** for most campaigns (unless user prompt is very brief)
+CRITICAL RULES (v2):
+1. Generate **5-8 sections** for most campaigns (realistic, not overwhelming)
 2. **ALTERNATE backgrounds**: Avoid 3+ consecutive sections with same background token
-3. Use background tokens ONLY: "bg", "surface", "muted", "primarySoft", "accentSoft", "primary", "accent", "transparent", "brand", "image"
+3. **v2 Background tokens** (preferred): "base", "alt", "brandTint", "brandSolid", "surface", "muted", "primarySoft", "accentSoft"
+   Legacy tokens still work: "bg" (=base), "primary", "accent", "transparent", "brand", "image"
 4. DO NOT invent hex colors - use brand tokens from palette
-5. Prefer realistic layouts:
-   - Announcement bar (optional)
-   - Nav header or header
-   - Hero
-   - Benefits/features
-   - Social proof or story
-   - Product grid (if ecommerce)
-   - FAQ or testimonial
-   - Secondary CTA
-   - Footer
-6. First section must be type="header" or "navHeader" or "announcementBar", last section must be type="footer"
-7. Footer MUST contain a smallPrint block with {{unsubscribe}} token
-8. Include at least one button with text and href
-9. All section IDs must be unique
-10. LAYOUT RULES:
+5. **USE BRAND FONTS**: theme.font.heading MUST be the exact value from brandContext.brand.fonts.heading, and theme.font.body MUST be the exact value from brandContext.brand.fonts.body
+6. **CONTRAST IS AUTOMATIC**: The rendering system automatically ensures proper contrast. Dark backgrounds (brandSolid, primary, accent) get light text, light backgrounds (base, alt, surface) get dark text. You only specify section backgrounds - text colors are calculated automatically for accessibility (WCAG AA 4.5:1 for text, 3:1 for buttons).
+7. **Prefer modern section types**:
+   - Use featureGrid over multiple feature sections
+   - Use productSpotlight for single products, productGrid for multiple
+   - Use ctaBanner instead of secondaryCTA for high-impact CTAs
+   - Use testimonialCard for structured testimonials
+   - Use metricStrip for stats/urgency
+8. First section must be type="header" or "navHeader" or "announcementBar", last section must be type="footer"
+9. Footer MUST contain a smallPrint block with {{unsubscribe}} token
+10. **One primary CTA**: Use consistent button text for primary CTA (repeat in hero and ctaBanner)
+11. All section IDs must be unique
+12. LAYOUT RULES:
     - Single column (default): Omit layout field OR set {"variant": "single"}, put blocks in section.blocks array
     - Two columns: {"variant": "twoColumn", "columns": [{"width": "50%", "blocks": [...]}, {"width": "50%", "blocks": [...]}]}, set section.blocks to []
     - Grid: {"variant": "grid", "columns": 2 or 3, "gap": 16}, put blocks in section.blocks array
     - CRITICAL: variant must be EXACTLY "single", "twoColumn", or "grid" (case-sensitive, no spaces)
 
-EXAMPLE SECTION SEQUENCES:
-Launch campaign: announcementBar → navHeader → hero → benefitsList → storySection → socialProofGrid → productGrid → faq → secondaryCTA → footer
-Sale campaign: announcementBar → header → hero → productGrid → benefitsList → testimonial → secondaryCTA → legalFinePrint → footer
-Newsletter: header → hero → storySection → feature → feature → benefitsList → secondaryCTA → footer
+EXAMPLE SECTION SEQUENCES (5-8 sections recommended):
+**Launch campaign**: announcementBar → hero → featureGrid → productSpotlight → testimonialCard → ctaBanner → footer
+**Sale campaign**: header → hero → productGrid → metricStrip → faqMini → ctaBanner → footer  
+**Newsletter**: navHeader → hero → storySection → featureGrid → testimonialCard → ctaBanner → footer
+**Reactivation**: header → hero → benefitsList → socialProofGrid → ctaBanner → footer
 
 LAYOUT EXAMPLES:
 Single column section (most common):
@@ -492,6 +510,10 @@ TRANSFORM INTO EMAILSPEC WITH:
     textColor: brand text,
     mutedTextColor: blend of bg + text,
     primaryColor: brand primary,
+    font: {
+      heading: "${brandContext.brand?.fonts?.heading || 'Arial'}",
+      body: "${brandContext.brand?.fonts?.body || 'Arial'}"
+    },
     palette: {
       primary: brand primary,
       ink: brand text,
@@ -508,24 +530,25 @@ TRANSFORM INTO EMAILSPEC WITH:
       card: { radius: 8, border: "none", shadow: "none" }
     }
   }
-- sections: array of 7-12 sections (expand beyond plan if needed for realistic flow)
-  - Use section.style.background tokens: "bg", "surface", "muted", "primarySoft", "accentSoft", "primary", "accent"
-  - **ALTERNATE backgrounds**: e.g., bg → primarySoft → bg → surface → accentSoft → bg
-  - Use new section types: announcementBar, navHeader, benefitsList, storySection, socialProofGrid, faq, secondaryCTA
-  - Use new blocks: badge, bullets, priceLine, rating, navLinks, socialIcons
+- sections: array of **5-8 sections** (quality over quantity - v2 guideline)
+  - **v2 Background tokens** (preferred): "base", "alt", "brandTint", "brandSolid", "surface", "muted"
+  - **ALTERNATE backgrounds**: e.g., base → brandTint → alt → surface → base → brandSolid
+  - **Use v2 section types**: featureGrid, productSpotlight, comparison, metricStrip, testimonialCard, ctaBanner, faqMini, dividerBand
+  - Use blocks: badge, bullets, priceLine, rating, navLinks, socialIcons
 - catalog: { items: products from brandContext.catalog }
 
-REQUIREMENTS:
-- **7-12 sections minimum** for realistic emails (not just ${plan.sections?.length || 3})
-- First section can be "announcementBar", "navHeader", or "header"
-- Last section must be type="footer" with smallPrint block containing "{{unsubscribe}}"
+REQUIREMENTS (v2):
+- **5-8 sections** for focused, engaging emails (not overwhelming)
+- **USE EXACT BRAND FONTS**: theme.font.heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", theme.font.body = "${brandContext.brand?.fonts?.body || 'Arial'}"
+- First section: "announcementBar", "navHeader", or "header"
+- Last section: type="footer" with smallPrint block containing "{{unsubscribe}}"
 - **ALTERNATE section.style.background** - avoid 3+ in a row with same token
 - Use brand-derived palette tokens ONLY (no random hex in section styles)
+- **TEXT CONTRAST IS AUTOMATIC**: Only specify section.style.background. The renderer will automatically calculate contrasting text colors (dark backgrounds → light text, light backgrounds → dark text) to meet WCAG AA standards. DO NOT manually set text colors.
 - Write actual email copy in heading/paragraph/bullets blocks based on plan guidance
-- Include at least one button block with text and href
-- Add a secondaryCTA section before footer
-- Use new block types where appropriate (bullets for benefits, rating for products, etc.)
-${intent.cta?.primary ? `- Primary CTA text should be similar to: "${intent.cta.primary}"` : ""}
+- **One primary CTA**: Use consistent button text (e.g., "${intent.cta?.primary || "Shop Now"}") in hero and ctaBanner sections
+- Prefer: featureGrid > multiple features, ctaBanner > secondaryCTA, testimonialCard > generic testimonial
+- Use bullets > paragraphs for benefits
 
 Generate ONLY the EmailSpec JSON.`;
 
@@ -548,30 +571,37 @@ ${JSON.stringify(intent, null, 2)}
 EMAIL PLAN:
 ${JSON.stringify(plan, null, 2)}
 
-CRITICAL REPAIR INSTRUCTIONS (Attempt ${attempt}/${MAX_ATTEMPTS}):
+CRITICAL REPAIR INSTRUCTIONS (v2, Attempt ${attempt}/${MAX_ATTEMPTS}):
 - Fix the errors listed above
+- **USE EXACT BRAND FONTS**: theme.font.heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", theme.font.body = "${brandContext.brand?.fonts?.body || 'Arial'}"
 - If errors mention "layout.variant": Use EXACTLY "single", "twoColumn", or "grid" (case-sensitive)
-- If errors mention BACKGROUND_MONOTONY: alternate section.style.background tokens
-- If errors mention TOO_FEW_SECTIONS: expand to 7-12 sections
-- If errors mention MISSING_SECONDARY_CTA: add a secondaryCTA section before footer
+- If errors mention BACKGROUND_MONOTONY: alternate section.style.background tokens (base/alt/brandTint)
+- If errors mention TOO_FEW_SECTIONS: expand to 5-8 sections using v2 section types
+- If errors mention MISSING_SECONDARY_CTA: add a ctaBanner section before footer
 - Ensure first section is "announcementBar", "navHeader", or "header"
 - Ensure last section is "footer"
 - Include at least one button with valid text and href
+- **One primary CTA**: Use consistent button text "${intent.cta?.primary || "Shop Now"}" in hero and ctaBanner
 - Footer must have {{unsubscribe}} token in smallPrint block
 - All section IDs must be unique
 - All productCard blocks must reference catalog items
-- Use palette tokens for backgrounds: "bg", "surface", "muted", "primarySoft", "accentSoft", "primary", "accent"
-${intent.cta?.primary ? `- Button text should match: "${intent.cta.primary}"` : ""}
+- **v2 Background tokens**: "base", "alt", "brandTint", "brandSolid", "surface", "muted", "primarySoft", "accentSoft"
+- **TEXT CONTRAST**: DO NOT manually set text colors. The system automatically ensures dark backgrounds get light text and light backgrounds get dark text (WCAG AA compliant)
+${intent.cta?.primary ? `- Primary button text must be: "${intent.cta.primary}"` : ""}
 
-${attempt === 3 ? `FINAL ATTEMPT - Be extra careful:
+${attempt === 3 ? `FINAL ATTEMPT (v2) - Be extra careful:
+- Use EXACT brand fonts: heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", body = "${brandContext.brand?.fonts?.body || 'Arial'}"
 - Double-check every product reference exists in catalog
-- Verify first section type is valid header type
+- Verify first section type is valid header type (header/navHeader/announcementBar)
 - Verify footer is sections[last]
 - Confirm button has both text and href properties
+- **One consistent primary CTA**: "${intent.cta?.primary || "Shop Now"}" in hero + ctaBanner
 - Verify all colors are valid hex codes
-- Alternate section backgrounds to avoid monotony
-- Include 7-12 sections total
-- Check that all required schema fields are present` : ""}
+- Alternate section backgrounds (base/alt/brandTint/surface)
+- Include 5-8 sections total (v2 guideline)
+- Use v2 section types: featureGrid, productSpotlight, ctaBanner, testimonialCard, metricStrip
+- Check that all required schema fields are present
+- Remember: text and button colors are automatically calculated for contrast - only specify background tokens` : ""}
 
 Generate the corrected EmailSpec JSON.`;
   }

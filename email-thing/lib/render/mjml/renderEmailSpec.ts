@@ -102,7 +102,7 @@ export function renderEmailSpecToMjml(
     <mj-attributes>
       <mj-all font-family="${escapeHtml(theme.font.body)}, Arial, sans-serif" />
       <mj-text font-size="16px" line-height="1.5" color="${theme.textColor}" />
-      <mj-button background-color="${theme.accessible?.buttonBackground || theme.primaryColor}" color="${theme.accessible?.buttonText || theme.backgroundColor}" border-radius="${theme.button.radius}px" font-weight="bold" />
+      <mj-button background-color="${theme.accessible?.buttonBackground || theme.primaryColor}" color="${theme.accessible?.buttonText || '#FFFFFF'}" border-radius="${theme.button.radius}px" font-weight="bold" />
     </mj-attributes>
     <mj-style>
       .heading { font-family: ${escapeHtml(theme.font.heading)}, Arial, sans-serif; font-weight: bold; line-height: 1.2; }
@@ -179,7 +179,7 @@ function renderSection(
     // Single column
     columnsContent = `
     <mj-column>
-${section.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id)).join("\n")}
+${section.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
     </mj-column>
     `;
   } else if (layout.variant === "twoColumn") {
@@ -199,10 +199,10 @@ ${section.blocks.map((block) => renderBlock(block, theme, catalogLookup, warning
 
       columnsContent = `
     <mj-column width="50%">
-${leftBlocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id)).join("\n")}
+${leftBlocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
     </mj-column>
     <mj-column width="50%">
-${rightBlocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id)).join("\n")}
+${rightBlocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
     </mj-column>
       `;
     } else {
@@ -210,10 +210,10 @@ ${rightBlocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, 
       const [col1, col2] = layout.columns;
       columnsContent = `
     <mj-column width="${col1.width}">
-${col1.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id)).join("\n")}
+${col1.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
     </mj-column>
     <mj-column width="${col2.width}">
-${col2.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id)).join("\n")}
+${col2.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
     </mj-column>
       `;
     }
@@ -244,7 +244,7 @@ ${col2.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, 
       .map(
         (columnBlocks) => `
     <mj-column width="${columnWidth}">
-${columnBlocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id)).join("\n")}
+${columnBlocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
     </mj-column>
     `
       )
@@ -266,33 +266,37 @@ function renderBlock(
   theme: any,
   catalogLookup: Map<string, Product>,
   warnings: RendererWarning[],
-  sectionId: string
+  sectionId: string,
+  sectionType?: string,
+  sectionBackground?: string,
+  sectionTextColor?: string
 ): string {
   switch (block.type) {
     case "logo":
       return renderLogoBlock(block, theme, warnings, sectionId);
     case "heading":
-      return renderHeadingBlock(block, theme);
+      return renderHeadingBlock(block, theme, sectionType, sectionTextColor);
     case "paragraph":
-      return renderParagraphBlock(block, theme);
+      return renderParagraphBlock(block, theme, sectionTextColor);
     case "image":
       return renderImageBlock(block, theme, warnings, sectionId);
     case "button":
-      return renderButtonBlock(block, theme, warnings, sectionId);
+      return renderButtonBlock(block, theme, warnings, sectionId, sectionBackground);
     case "productCard":
       return renderProductCardBlock(
         block,
         theme,
         catalogLookup,
         warnings,
-        sectionId
+        sectionId,
+        sectionBackground
       );
     case "divider":
       return renderDividerBlock(theme);
     case "spacer":
       return renderSpacerBlock(block);
     case "smallPrint":
-      return renderSmallPrintBlock(block, theme);
+      return renderSmallPrintBlock(block, theme, sectionTextColor);
     case "badge":
       return renderBadge(block as BadgeBlock, theme);
     case "bullets":
@@ -340,29 +344,46 @@ function renderLogoBlock(
 /**
  * Render heading block
  */
-function renderHeadingBlock(block: any, theme: any): string {
+function renderHeadingBlock(block: any, theme: any, sectionType?: string, sectionTextColor?: string): string {
   const align = block.align || "left";
-  const level = block.level || "h1";
+  const level = block.level || 1;  // level is a number: 1, 2, or 3
 
   // Map heading levels to font sizes
-  const fontSizeMap: Record<string, string> = {
-    h1: "32px",
-    h2: "28px",
-    h3: "24px",
-    h4: "20px",
+  // Header sections get significantly larger fonts for maximum impact
+  const fontSizeMap: Record<number, string> = {
+    1: "32px",
+    2: "28px",
+    3: "24px",
   };
 
-  const fontSize = fontSizeMap[level] || "32px";
+  const headerFontSizeMap: Record<number, string> = {
+    1: "48px",  // Much larger and eye-catching for header
+    2: "36px",  // Still larger than any other section
+    3: "30px",  // Bigger than regular h2
+  };
 
-  return `      <mj-text align="${align}" font-size="${fontSize}" css-class="heading">${escapeHtml(block.text)}</mj-text>`;
+  // Use larger fonts for header sections (header, navHeader, announcementBar)
+  const isHeaderSection = sectionType === "header" || sectionType === "navHeader" || sectionType === "announcementBar";
+  const fontSize = isHeaderSection
+    ? (headerFontSizeMap[level] || "48px")
+    : (fontSizeMap[level] || "32px");
+
+  // Add extra bold font-weight for header sections to increase contrast
+  const fontWeight = isHeaderSection ? ' font-weight="700"' : ' font-weight="600"';
+
+  // Use section text color if provided, otherwise fall back to theme default
+  const colorAttr = sectionTextColor ? ` color="${sectionTextColor}"` : '';
+
+  return `      <mj-text align="${align}" font-size="${fontSize}"${fontWeight}${colorAttr} css-class="heading">${escapeHtml(block.text)}</mj-text>`;
 }
 
 /**
  * Render paragraph block
  */
-function renderParagraphBlock(block: any, theme: any): string {
+function renderParagraphBlock(block: any, theme: any, sectionTextColor?: string): string {
   const align = block.align || "left";
-  return `      <mj-text align="${align}">${escapeHtml(block.text)}</mj-text>`;
+  const colorAttr = sectionTextColor ? ` color="${sectionTextColor}"` : '';
+  return `      <mj-text align="${align}"${colorAttr}>${escapeHtml(block.text)}</mj-text>`;
 }
 
 /**
@@ -399,7 +420,8 @@ function renderButtonBlock(
   block: any,
   theme: any,
   warnings: RendererWarning[],
-  sectionId: string
+  sectionId: string,
+  sectionBackground?: string
 ): string {
   const align = block.align || "center";
   const variant = block.variant || "primary";
@@ -414,18 +436,21 @@ function renderButtonBlock(
   }
 
   // Use pre-calculated accessible button colors for WCAG AA compliance
-  const buttonColors = theme.accessible?.buttonBackground && theme.accessible?.buttonText
+  // Pass section background to ensure button contrasts with its actual context
+  const buttonColors = theme.accessible?.buttonBackground && theme.accessible?.buttonText && !sectionBackground
     ? { bg: theme.accessible.buttonBackground, text: theme.accessible.buttonText }
-    : getButtonColors(theme);  // Fallback for legacy themes
+    : getButtonColors(theme, sectionBackground);  // Calculate with section context
 
   let bgColor = buttonColors.bg;
   let textColor = buttonColors.text;
   let border = "none";
 
   // Handle secondary and outline variants
+  // For outline buttons, ensure text contrasts with section background, not button background
   if (variant === "secondary" || theme.button.style === "outline") {
     bgColor = "transparent";
-    textColor = buttonColors.bg;  // Use button bg color as text (maintains brand)
+    // Use theme's primary text color instead of button bg to ensure readability on any section background
+    textColor = theme.textColor || buttonColors.bg;
     border = `2px solid ${buttonColors.bg}`;
   }
 
@@ -440,7 +465,8 @@ function renderProductCardBlock(
   theme: any,
   catalogLookup: Map<string, Product>,
   warnings: RendererWarning[],
-  sectionId: string
+  sectionId: string,
+  sectionBackground?: string
 ): string {
   const product = catalogLookup.get(block.productRef);
 
@@ -472,15 +498,18 @@ function renderProductCardBlock(
   
   // Add price if available
   if (product.price) {
-    parts.push(`      <mj-text align="center" font-weight="bold" font-size="18px" color="${theme.primaryColor}" padding="8px 16px 0 16px">${escapeHtml(product.price)}</mj-text>`);
+    // Use high-contrast text color instead of primaryColor to ensure readability
+    const priceColor = theme.textColor || theme.palette?.ink || "#111111";
+    parts.push(`      <mj-text align="center" font-weight="bold" font-size="18px" color="${priceColor}" padding="8px 16px 0 16px">${escapeHtml(product.price)}</mj-text>`);
   }
   
-  // Add button
-  parts.push(`      <mj-button href="${escapeHtml(productUrl)}" align="center" padding="12px 16px">View Product</mj-button>`);
-  
+  // Add button with section-aware colors
+  const buttonColors = getButtonColors(theme, sectionBackground);
+  parts.push(`      <mj-button href="${escapeHtml(productUrl)}" align="center" padding="12px 16px" background-color="${buttonColors.bg}" color="${buttonColors.text}">View Product</mj-button>`);
+
   // Add spacer for bottom padding
   parts.push(`      <mj-spacer height="16px" />`);
-  
+
   return parts.join("\n");
 }
 
@@ -501,9 +530,10 @@ function renderSpacerBlock(block: any): string {
 /**
  * Render small print block
  */
-function renderSmallPrintBlock(block: any, theme: any): string {
+function renderSmallPrintBlock(block: any, theme: any, sectionTextColor?: string): string {
   const align = block.align || "center";
-  return `      <mj-text align="${align}" css-class="small-print">${escapeHtml(block.text)}</mj-text>`;
+  const colorAttr = sectionTextColor ? ` color="${sectionTextColor}"` : '';
+  return `      <mj-text align="${align}"${colorAttr} css-class="small-print">${escapeHtml(block.text)}</mj-text>`;
 }
 
 /**

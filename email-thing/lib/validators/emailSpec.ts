@@ -100,13 +100,15 @@ export function validateEmailSpecStructure(args: {
   // ===== BLOCKING ERRORS =====
   
   // 1. Section ordering: header must be first, footer must be last
+  // v2: Allow header, navHeader, or announcementBar as first section
   if (spec.sections.length > 0) {
     const firstSection = spec.sections[0];
-    if (firstSection.type !== "header") {
+    const validFirstTypes = ["header", "navHeader", "announcementBar"];
+    if (!validFirstTypes.includes(firstSection.type)) {
       issues.push({
         code: "HEADER_NOT_FIRST",
         severity: "error",
-        message: "Header section must be the first section",
+        message: `First section must be header, navHeader, or announcementBar (found: ${firstSection.type})`,
         path: "sections[0]",
       });
     }
@@ -376,13 +378,13 @@ export function validateEmailSpecStructure(args: {
     }
   }
 
-  // 2. Too few sections
-  const minSections = intent.type === "sale" || intent.type === "launch" ? 7 : 6;
+  // 2. Too few sections - v2: Updated recommended counts
+  const minSections = intent.type === "sale" || intent.type === "launch" ? 5 : 4;
   if (spec.sections.length < minSections) {
     issues.push({
       code: "TOO_FEW_SECTIONS",
       severity: "warning",
-      message: `Email has only ${spec.sections.length} sections. Consider adding more content (recommended: ${minSections}+)`,
+      message: `Email has only ${spec.sections.length} sections. Consider adding more content (recommended: 5-8 sections)`,
       path: "sections",
     });
   }
@@ -496,14 +498,28 @@ export function validateEmailSpecStructure(args: {
     }
   }
 
-  // 6. Content imbalance
-  if (spec.sections.length > 7) {
+  // 6. Content imbalance - v2: Updated threshold
+  if (spec.sections.length > 8) {
     issues.push({
       code: "TOO_MANY_SECTIONS",
       severity: "warning",
-      message: `Email has ${spec.sections.length} sections. Consider reducing to 7 or fewer for better engagement`,
+      message: `Email has ${spec.sections.length} sections. Consider reducing to 8 or fewer for better engagement`,
       path: "sections",
     });
+  }
+
+  // v2: Check for primary CTA consistency (only one primary button repeated is ideal)
+  const primaryButtons = buttons.filter(btn => !btn.variant || btn.variant === "primary");
+  if (primaryButtons.length > 2) {
+    const uniqueButtonTexts = new Set(primaryButtons.map(btn => btn.text.toLowerCase()));
+    if (uniqueButtonTexts.size > 1) {
+      issues.push({
+        code: "INCONSISTENT_PRIMARY_CTA",
+        severity: "warning",
+        message: `Found ${primaryButtons.length} primary buttons with different text. Consider using one consistent primary CTA`,
+        path: "sections",
+      });
+    }
   }
 
   // 7. Copy length warnings

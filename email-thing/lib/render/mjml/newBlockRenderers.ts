@@ -96,11 +96,14 @@ export function renderBullets(block: BulletsBlock, theme: any): string {
 export function renderPriceLine(block: PriceLineBlock, theme: any): string {
   const hasCompare = block.compareAt && block.compareAt.trim() !== "";
 
+  // Use high-contrast text color for price instead of primaryColor
+  const priceColor = theme.palette?.ink || theme.textColor || "#111111";
+
   return `
     <mj-section background-color="transparent">
       <mj-column>
         <mj-text align="center">
-          <div style="font-size: 32px; font-weight: bold; color: ${theme.palette?.primary || theme.primaryColor}; line-height: 1;">
+          <div style="font-size: 32px; font-weight: bold; color: ${priceColor}; line-height: 1;">
             ${escapeHtml(block.price)}
           </div>
           ${hasCompare ? `<div style="font-size: 18px; color: ${theme.mutedTextColor}; text-decoration: line-through; margin-top: 4px;">${escapeHtml(block.compareAt!)}</div>` : ""}

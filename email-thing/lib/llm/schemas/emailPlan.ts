@@ -41,18 +41,45 @@ const SectionCTASchema = z.object({
 
 /**
  * Email section
+ * v2: Updated with new section types for better planning
  */
 const SectionSchema = z.object({
   id: z.string().max(24, "Section ID must be 24 characters or less"),
   type: z.enum([
+    // Header types
     "header",
+    "nav_header",
+    "announcement_bar",
+    // Main content types
     "hero",
     "value_props",
+    "feature_grid",
+    "benefits_list",
+    "story_section",
     "product_feature",
     "product_grid",
+    "product_spotlight",
+    "comparison",
+    // Social proof / trust
     "social_proof",
+    "social_proof_grid",
+    "testimonial",
+    "testimonial_card",
+    "trust_bar",
+    "metric_strip",
+    // CTAs and banners
     "promo_banner",
+    "cta_section",
+    "cta_banner",
+    "secondary_cta",
+    // Support / info
     "faq",
+    "faq_mini",
+    "legal_fine_print",
+    // Visual elements
+    "section_title",
+    "divider_band",
+    // Footer
     "footer",
   ]),
   purpose: z
@@ -140,14 +167,16 @@ export const EmailPlanSchema = z
   })
   .superRefine((data, ctx) => {
     // Check for required header and footer sections
+    // v2: Allow multiple header types
     const sectionTypes = data.sections.map((s) => s.type);
-    const hasHeader = sectionTypes.includes("header");
+    const validHeaderTypes = ["header", "nav_header", "announcement_bar"];
+    const hasHeader = sectionTypes.some(type => validHeaderTypes.includes(type));
     const hasFooter = sectionTypes.includes("footer");
 
     if (!hasHeader) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Must include at least one 'header' section",
+        message: "Must include at least one header section (header, nav_header, or announcement_bar)",
         path: ["sections"],
       });
     }
@@ -179,7 +208,8 @@ export const EmailPlanSchema = z
     // If no selected products, validate template and sections
     if (data.selectedProducts.length === 0) {
       const productTemplates = ["product_grid", "hero_with_products"];
-      const productSectionTypes = ["product_grid", "product_feature"];
+      // v2: Updated product section types
+      const productSectionTypes = ["product_grid", "product_feature", "product_spotlight"];
 
       // Check if any section has productIds
       const hasProductIds = data.sections.some(

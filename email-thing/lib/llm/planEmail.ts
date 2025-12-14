@@ -99,6 +99,26 @@ ${intent.offer ? `- Offer: ${intent.offer.kind}${intent.offer.value ? ` (${inten
 
 Your task is to create an EmailPlan - a structured outline/strategy for the email.
 
+**v2 Guidelines:**
+- Plan for 5-8 sections (focused, engaging)
+- Use modern section patterns based on campaign type
+- Ensure visual rhythm with alternating backgrounds
+- Plan for one consistent primary CTA
+
+**Campaign Type Templates (v2):**
+
+**Launch Campaign (5-7 sections):**
+header/nav_header → hero → value_props/feature_grid → product_spotlight → testimonial_card → cta_banner → footer
+
+**Sale Campaign (5-7 sections):**
+header → hero (with offer) → product_grid → metric_strip/promo_banner → faq_mini → cta_banner → footer
+
+**Newsletter (5-6 sections):**
+header → hero → story_section → feature_grid → social_proof → cta_banner → footer
+
+**Reactivation (4-6 sections):**
+header → hero ("We saved your spot") → benefits_list → testimonial_card → cta_banner → footer
+
 CRITICAL PRODUCT SELECTION RULES:
 ${
   catalog.length === 0
@@ -139,7 +159,7 @@ Return ONLY valid JSON matching this exact schema:
   "sections": [
     {
       "id": "string (max 24 chars, slug format)",
-      "type": "header" | "hero" | "value_props" | "product_feature" | "product_grid" | "social_proof" | "promo_banner" | "faq" | "footer",
+      "type": "header" | "nav_header" | "announcement_bar" | "hero" | "value_props" | "feature_grid" | "benefits_list" | "story_section" | "product_feature" | "product_grid" | "product_spotlight" | "comparison" | "social_proof" | "social_proof_grid" | "testimonial" | "testimonial_card" | "trust_bar" | "metric_strip" | "promo_banner" | "cta_section" | "cta_banner" | "secondary_cta" | "faq" | "faq_mini" | "legal_fine_print" | "section_title" | "divider_band" | "footer",
       "purpose": "string (max 120 chars)",
       "headline": "string (max 60 chars, optional)",
       "bodyGuidance": "string (max 260 chars, optional)",
@@ -147,7 +167,7 @@ Return ONLY valid JSON matching this exact schema:
       "productIds": ["string"] (max 8, optional),
       "styleHints": ["string (max 40)"] (max 6, optional)
     }
-  ], // min 3 max 10
+  ], // min 3 max 10 (v2: recommend 5-8)
   "selectedProducts": [
     {
       "id": "string (must match catalog ID)",
@@ -171,10 +191,13 @@ Return ONLY valid JSON matching this exact schema:
   "rationale": "string (max 220 chars)"
 }
 
-Guidelines:
-- Create 3-10 sections (including required header/footer)
+Guidelines (v2):
+- Create 5-8 sections for focused, engaging emails (including required header/footer)
+- Use modern v2 section types: feature_grid, product_spotlight, testimonial_card, cta_banner, metric_strip, faq_mini
 - Match tone to brand voice and campaign intent
-- Use section types strategically for the campaign goal
+- Follow campaign type templates above for proven structure
+- Plan for visual rhythm with varied section backgrounds
+- Include one consistent primary CTA (repeat in hero and cta_banner)
 - Set confidence based on how well you can match brand + intent (0.8+ for clear match)
 - Return ONLY the JSON object, no markdown, no extra text`;
 }
