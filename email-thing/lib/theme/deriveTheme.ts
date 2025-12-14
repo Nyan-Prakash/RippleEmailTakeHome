@@ -241,13 +241,17 @@ export function deriveThemeFromBrandContext(brandContext: BrandContext): {
   const { colors } = brand;
 
   // Base colors from brand
-  const bg = colors.background || "#FFFFFF";
+  let bg = colors.background || "#FFFFFF";
   const ink = colors.text || "#111111";
   const primary = colors.primary || "#111111";
 
-  // Determine if background is light or dark
+  // CRITICAL: Email background MUST be light - never dark
+  // If brand background is dark, use white instead
   const bgLuminance = getLuminance(bg);
-  const isLightBg = bgLuminance > 0.5;
+  if (bgLuminance <= 0.5) {
+    bg = "#FFFFFF"; // Force light background for emails
+  }
+  const isLightBg = true; // Always true after the safeguard above
 
   // Derive surface color (slightly different from background)
   const surface = isLightBg ? darken(bg, 0.05) : lighten(bg, 0.1);

@@ -309,15 +309,15 @@ REQUIRED EMAILSPEC STRUCTURE:
   },
   "theme": {
     "containerWidth": number (typically 600),
-    "backgroundColor": "hex color",
-    "surfaceColor": "hex color",
+    "backgroundColor": "hex color (MUST be light - e.g., #FFFFFF, #F9F9F9, #F5F5F5 - NEVER dark/black)",
+    "surfaceColor": "hex color (MUST be light)",
     "textColor": "hex color",
     "mutedTextColor": "hex color",
     "primaryColor": "hex color",
     "font": { "heading": "string (use brand.fonts.heading)", "body": "string (use brand.fonts.body)" },
     "button": { "radius": number, "style": "solid" | "outline" | "soft", "paddingY": number, "paddingX": number },
     "palette": {
-      "primary": "hex", "ink": "hex", "bg": "hex", "surface": "hex",
+      "primary": "hex", "ink": "hex", "bg": "hex (MUST be light - NEVER dark/black)", "surface": "hex (MUST be light)",
       "muted": "hex", "accent": "hex", "primarySoft": "hex", "accentSoft": "hex"
     },
     "rhythm": { "sectionGap": number, "contentPaddingX": number, "contentPaddingY": number },
@@ -403,24 +403,25 @@ BLOCK TYPES:
   { "type": "smallPrint", "text": "string (must include {{unsubscribe}} in footer)" }
 
 CRITICAL RULES (v2):
-1. Generate **5-8 sections** for most campaigns (realistic, not overwhelming)
-2. **ALTERNATE backgrounds**: Avoid 3+ consecutive sections with same background token
-3. **v2 Background tokens** (preferred): "base", "alt", "brandTint", "brandSolid", "surface", "muted", "primarySoft", "accentSoft"
+1. **EMAIL BACKGROUND MUST BE LIGHT**: theme.backgroundColor and palette.bg MUST ALWAYS be light colors (e.g., #FFFFFF, #F9F9F9, #F5F5F5). NEVER use dark colors like black (#000000) or dark grays for the main email background. Individual sections can have dark backgrounds, but the overall email background must be light.
+2. Generate **5-8 sections** for most campaigns (realistic, not overwhelming)
+3. **ALTERNATE backgrounds**: Avoid 3+ consecutive sections with same background token
+4. **v2 Background tokens** (preferred): "base", "alt", "brandTint", "brandSolid", "surface", "muted", "primarySoft", "accentSoft"
    Legacy tokens still work: "bg" (=base), "primary", "accent", "transparent", "brand", "image"
-4. DO NOT invent hex colors - use brand tokens from palette
-5. **USE BRAND FONTS**: theme.font.heading MUST be the exact value from brandContext.brand.fonts.heading, and theme.font.body MUST be the exact value from brandContext.brand.fonts.body
-6. **CONTRAST IS AUTOMATIC**: The rendering system automatically ensures proper contrast. Dark backgrounds (brandSolid, primary, accent) get light text, light backgrounds (base, alt, surface) get dark text. You only specify section backgrounds - text colors are calculated automatically for accessibility (WCAG AA 4.5:1 for text, 3:1 for buttons).
-7. **Prefer modern section types**:
+5. DO NOT invent hex colors - use brand tokens from palette
+6. **USE BRAND FONTS**: theme.font.heading MUST be the exact value from brandContext.brand.fonts.heading, and theme.font.body MUST be the exact value from brandContext.brand.fonts.body
+7. **CONTRAST IS AUTOMATIC**: The rendering system automatically ensures proper contrast. Dark backgrounds (brandSolid, primary, accent) get light text, light backgrounds (base, alt, surface) get dark text. You only specify section backgrounds - text colors are calculated automatically for accessibility (WCAG AA 4.5:1 for text, 3:1 for buttons).
+8. **Prefer modern section types**:
    - Use featureGrid over multiple feature sections
    - Use productSpotlight for single products, productGrid for multiple
    - Use ctaBanner instead of secondaryCTA for high-impact CTAs
    - Use testimonialCard for structured testimonials
    - Use metricStrip for stats/urgency
-8. First section must be type="header" or "navHeader" or "announcementBar", last section must be type="footer"
-9. Footer MUST contain a smallPrint block with {{unsubscribe}} token
-10. **One primary CTA**: Use consistent button text for primary CTA (repeat in hero and ctaBanner)
-11. All section IDs must be unique
-12. LAYOUT RULES:
+9. First section must be type="header" or "navHeader" or "announcementBar", last section must be type="footer"
+10. Footer MUST contain a smallPrint block with {{unsubscribe}} token
+11. **One primary CTA**: Use consistent button text for primary CTA (repeat in hero and ctaBanner)
+12. All section IDs must be unique
+13. LAYOUT RULES:
     - Single column (default): Omit layout field OR set {"variant": "single"}, put blocks in section.blocks array
     - Two columns: {"variant": "twoColumn", "columns": [{"width": "50%", "blocks": [...]}, {"width": "50%", "blocks": [...]}]}, set section.blocks to []
     - Grid: {"variant": "grid", "columns": 2 or 3, "gap": 16}, put blocks in section.blocks array
@@ -505,8 +506,8 @@ TRANSFORM INTO EMAILSPEC WITH:
 - meta: { subject: "${plan.subject?.primary || "Compelling subject line"}", preheader: "..." }
 - theme: {
     containerWidth: 600,
-    backgroundColor: brand background,
-    surfaceColor: slightly darker/lighter bg,
+    backgroundColor: ALWAYS use a light color (e.g., #FFFFFF, #F9F9F9, #F5F5F5) - NEVER use dark colors like black,
+    surfaceColor: slightly darker than bg (but still light),
     textColor: brand text,
     mutedTextColor: blend of bg + text,
     primaryColor: brand primary,
@@ -517,8 +518,8 @@ TRANSFORM INTO EMAILSPEC WITH:
     palette: {
       primary: brand primary,
       ink: brand text,
-      bg: brand background,
-      surface: blend(bg, ink, 5%),
+      bg: ALWAYS a light color (e.g., #FFFFFF, #F9F9F9, #F5F5F5) - NEVER dark,
+      surface: blend(bg, ink, 5%) but ensure still light,
       muted: blend(bg, ink, 15%),
       accent: derived from primary (shifted hue),
       primarySoft: blend(primary, bg, 85%),
@@ -538,6 +539,7 @@ TRANSFORM INTO EMAILSPEC WITH:
 - catalog: { items: products from brandContext.catalog }
 
 REQUIREMENTS (v2):
+- **EMAIL BACKGROUND MUST BE LIGHT**: theme.backgroundColor and palette.bg MUST be light colors (#FFFFFF, #F9F9F9, #F5F5F5) - NEVER dark/black
 - **5-8 sections** for focused, engaging emails (not overwhelming)
 - **USE EXACT BRAND FONTS**: theme.font.heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", theme.font.body = "${brandContext.brand?.fonts?.body || 'Arial'}"
 - First section: "announcementBar", "navHeader", or "header"
@@ -573,6 +575,7 @@ ${JSON.stringify(plan, null, 2)}
 
 CRITICAL REPAIR INSTRUCTIONS (v2, Attempt ${attempt}/${MAX_ATTEMPTS}):
 - Fix the errors listed above
+- **EMAIL BACKGROUND MUST BE LIGHT**: theme.backgroundColor and palette.bg MUST be light colors (e.g., #FFFFFF, #F9F9F9, #F5F5F5) - NEVER dark/black
 - **USE EXACT BRAND FONTS**: theme.font.heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", theme.font.body = "${brandContext.brand?.fonts?.body || 'Arial'}"
 - If errors mention "layout.variant": Use EXACTLY "single", "twoColumn", or "grid" (case-sensitive)
 - If errors mention BACKGROUND_MONOTONY: alternate section.style.background tokens (base/alt/brandTint)
@@ -590,6 +593,7 @@ CRITICAL REPAIR INSTRUCTIONS (v2, Attempt ${attempt}/${MAX_ATTEMPTS}):
 ${intent.cta?.primary ? `- Primary button text must be: "${intent.cta.primary}"` : ""}
 
 ${attempt === 3 ? `FINAL ATTEMPT (v2) - Be extra careful:
+- **CRITICAL**: theme.backgroundColor and palette.bg MUST be light colors (#FFFFFF, #F9F9F9, #F5F5F5) - NEVER dark/black
 - Use EXACT brand fonts: heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", body = "${brandContext.brand?.fonts?.body || 'Arial'}"
 - Double-check every product reference exists in catalog
 - Verify first section type is valid header type (header/navHeader/announcementBar)
