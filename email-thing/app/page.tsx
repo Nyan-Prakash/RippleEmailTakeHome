@@ -67,6 +67,8 @@ export default function Home() {
   // Wizard navigation state
   const [activeStep, setActiveStep] = useState<WizardStep>("brand");
 
+  const isAnalyzingBrand = viewState === "loading";
+
   const handleAnalyze = async () => {
     if (!brandUrl.trim()) {
       setError({ code: "INVALID_URL", message: "Please enter a URL" });
@@ -604,10 +606,10 @@ export default function Home() {
                       )}
                       <button
                         onClick={handleAnalyze}
-                        disabled={viewState === "loading"}
+                        disabled={isAnalyzingBrand}
                         className="w-full rounded-md bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                       >
-                        {viewState === "loading" ? "Analyzing..." : "Analyze Brand"}
+                        {isAnalyzingBrand ? "Analyzing..." : "Analyze Brand"}
                       </button>
                     </div>
                   </div>
