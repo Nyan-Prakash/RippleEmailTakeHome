@@ -38,14 +38,46 @@ function normalizeSectionType(
     LLMEmailPlan["sections"][number]["type"],
     APIEmailPlan["sections"][number]["type"]
   > = {
+    // Header types
     header: "header",
+    nav_header: "navHeader",
+    announcement_bar: "announcementBar",
+
+    // Main content types
     hero: "hero",
     value_props: "feature",
+    feature_grid: "featureGrid",
+    benefits_list: "benefitsList",
+    story_section: "storySection",
     product_feature: "feature",
     product_grid: "productGrid",
+    product_spotlight: "productSpotlight",
+    comparison: "comparison",
+
+    // Social proof / trust
     social_proof: "testimonial",
+    social_proof_grid: "socialProofGrid",
+    testimonial: "testimonial",
+    testimonial_card: "testimonialCard",
+    trust_bar: "trustBar",
+    metric_strip: "metricStrip",
+
+    // CTAs and banners
     promo_banner: "trustBar",
-    faq: "feature",
+    cta_section: "secondaryCTA",
+    cta_banner: "ctaBanner",
+    secondary_cta: "secondaryCTA",
+
+    // Support / info
+    faq: "faq",
+    faq_mini: "faqMini",
+    legal_fine_print: "legalFinePrint",
+
+    // Visual elements
+    section_title: "sectionTitle",
+    divider_band: "dividerBand",
+
+    // Footer
     footer: "footer",
   };
   return typeMap[llmType];
