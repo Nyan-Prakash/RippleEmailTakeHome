@@ -10,9 +10,9 @@ export default function CampaignIntentCard({
   onAnalyzeAnother,
 }: CampaignIntentCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+    <div className="bg-white rounded-lg shadow-md p-6 space-y-6 text-slate-900">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Campaign Intent</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Campaign Intent</h2>
         {onAnalyzeAnother && (
           <button
             onClick={onAnalyzeAnother}
@@ -29,18 +29,20 @@ export default function CampaignIntentCard({
           <span className="text-sm font-medium text-gray-600">
             Campaign Type
           </span>
-          <p className="text-lg capitalize">{intent.type.replace(/_/g, " ")}</p>
+          <p className="text-lg capitalize text-black">
+            {intent.type.replace(/_/g, " ")}
+          </p>
         </div>
         <div>
           <span className="text-sm font-medium text-gray-600">Goal</span>
-          <p className="text-lg">{intent.goal}</p>
+          <p className="text-lg text-black">{intent.goal}</p>
         </div>
         {intent.audience && (
           <div>
             <span className="text-sm font-medium text-gray-600">
               Target Audience
             </span>
-            <p className="text-lg">{intent.audience}</p>
+            <p className="text-lg text-black">{intent.audience}</p>
           </div>
         )}
       </div>
@@ -66,13 +68,13 @@ export default function CampaignIntentCard({
         <div>
           <span className="text-sm font-medium text-gray-600">Offer</span>
           <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
-            <p className="font-medium capitalize">
+            <p className="font-medium capitalize text-black">
               {intent.offer.kind.replace(/_/g, " ")}
               {intent.offer.value &&
                 `: ${intent.offer.value}${intent.offer.kind === "percent" ? "%" : ""}`}
             </p>
             {intent.offer.details && (
-              <p className="text-sm text-gray-700 mt-1">
+              <p className="text-sm text-black mt-1">
                 {intent.offer.details}
               </p>
             )}
@@ -148,7 +150,7 @@ export default function CampaignIntentCard({
           <span className="text-sm font-medium text-gray-600">Constraints</span>
           <ul className="mt-2 list-disc list-inside space-y-1">
             {intent.constraints.map((constraint, idx) => (
-              <li key={idx} className="text-sm text-gray-700">
+              <li key={idx} className="text-sm text-black">
                 {constraint}
               </li>
             ))}
@@ -162,7 +164,7 @@ export default function CampaignIntentCard({
           <span className="text-sm font-medium text-gray-600">
             AI Rationale
           </span>
-          <p className="text-sm text-gray-700 mt-1 italic">
+          <p className="text-sm text-black mt-1 italic">
             {intent.rationale}
           </p>
         </div>

@@ -7,9 +7,9 @@ interface EmailPlanCardProps {
 
 export default function EmailPlanCard({ plan, onNewPlan }: EmailPlanCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+    <div className="bg-white rounded-lg shadow-md p-6 space-y-6 text-slate-900">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Email Plan</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Email Plan</h2>
         {onNewPlan && (
           <button
             onClick={onNewPlan}
@@ -26,7 +26,9 @@ export default function EmailPlanCard({ plan, onNewPlan }: EmailPlanCardProps) {
           <span className="text-sm font-medium text-gray-600">
             Primary Subject
           </span>
-          <p className="text-lg font-medium mt-1">{plan.subject.primary}</p>
+          <p className="text-lg font-medium mt-1 text-black">
+            {plan.subject.primary}
+          </p>
         </div>
         {plan.subject.alternatives.length > 0 && (
           <div>
@@ -37,7 +39,7 @@ export default function EmailPlanCard({ plan, onNewPlan }: EmailPlanCardProps) {
               {plan.subject.alternatives.map((alt, idx) => (
                 <p
                   key={idx}
-                  className="text-sm text-gray-700 pl-4 border-l-2 border-gray-300"
+                  className="text-sm text-black pl-4 border-l-2 border-gray-300"
                 >
                   {alt}
                 </p>
@@ -50,7 +52,7 @@ export default function EmailPlanCard({ plan, onNewPlan }: EmailPlanCardProps) {
       {/* Preheader */}
       <div>
         <span className="text-sm font-medium text-gray-600">Preheader</span>
-        <p className="text-base mt-1 text-gray-700">{plan.preheader}</p>
+        <p className="text-base mt-1 text-black">{plan.preheader}</p>
       </div>
 
       {/* Layout */}
@@ -90,16 +92,14 @@ export default function EmailPlanCard({ plan, onNewPlan }: EmailPlanCardProps) {
                       {section.type.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700 mb-2">
-                    {section.purpose}
-                  </p>
+                  <p className="text-sm text-black mb-2">{section.purpose}</p>
                   {section.headline && (
-                    <p className="text-sm font-medium text-gray-900 mb-1">
+                    <p className="text-sm font-medium text-black mb-1">
                       Headline: &quot;{section.headline}&quot;
                     </p>
                   )}
                   {section.bodyGuidance && (
-                    <p className="text-xs text-gray-600 italic mb-2">
+                    <p className="text-xs text-black italic mb-2">
                       {section.bodyGuidance}
                     </p>
                   )}
@@ -171,7 +171,7 @@ export default function EmailPlanCard({ plan, onNewPlan }: EmailPlanCardProps) {
                         {product.price}
                       </p>
                     )}
-                    <p className="text-xs text-gray-600 mt-1 italic">
+                    <p className="text-xs text-black mt-1 italic">
                       {product.whyThisProduct}
                     </p>
                     {product.url && (
@@ -209,7 +209,7 @@ export default function EmailPlanCard({ plan, onNewPlan }: EmailPlanCardProps) {
               {plan.personalization.ideas.map((idea, idx) => (
                 <li
                   key={idx}
-                  className="text-sm text-gray-700 pl-4 border-l-2 border-yellow-300"
+                  className="text-sm text-black pl-4 border-l-2 border-yellow-300"
                 >
                   {idea}
                 </li>
@@ -222,7 +222,7 @@ export default function EmailPlanCard({ plan, onNewPlan }: EmailPlanCardProps) {
       {/* Compliance */}
       <div className="p-3 bg-slate-50 border border-slate-200 rounded-md">
         <span className="text-sm font-medium text-gray-600">Compliance</span>
-        <div className="mt-2 space-y-1 text-xs text-gray-600">
+        <div className="mt-2 space-y-1 text-xs text-black">
           <p>✓ Unsubscribe link required</p>
           <p>✓ Physical address hint required</p>
           {plan.compliance.claimsToAvoid &&
@@ -247,7 +247,7 @@ export default function EmailPlanCard({ plan, onNewPlan }: EmailPlanCardProps) {
           <span className="text-sm font-medium text-gray-600">
             AI Rationale
           </span>
-          <p className="text-sm text-gray-700 mt-1 italic">{plan.rationale}</p>
+          <p className="text-sm text-black mt-1 italic">{plan.rationale}</p>
         </div>
         <div>
           <span className="text-sm font-medium text-gray-600">Confidence</span>
