@@ -251,7 +251,7 @@ export default function EmailSpecViewer({ spec, warnings = [] }: EmailSpecViewer
         <summary className="cursor-pointer font-medium text-gray-900">
           View Raw JSON
         </summary>
-        <pre className="mt-4 text-xs overflow-auto bg-white p-4 rounded border border-gray-200 max-h-96">
+        <pre className="mt-4 text-xs overflow-auto bg-white p-4 rounded border border-gray-200 max-h-96 text-black">
           {JSON.stringify(spec, null, 2)}
         </pre>
       </details>
