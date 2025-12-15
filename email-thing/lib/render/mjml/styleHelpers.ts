@@ -1,5 +1,5 @@
 import type { Theme, Section } from "../../schemas/emailSpec";
-import { resolveBackgroundToken, resolveTextColorToken, getReadableTextColor, getContrastRatio } from "../../theme/deriveTheme";
+import { resolveBackgroundToken, resolveTextColorToken, getReadableTextColor, getContrastRatio, getLuminance } from "../../theme/deriveTheme";
 
 /**
  * Resolve section background color from token or legacy value
@@ -27,10 +27,16 @@ export function resolveSectionBackground(section: Section, theme: Theme): string
 /**
  * Resolve section text color from token or legacy value
  * Uses accessible colors when available to ensure WCAG AA compliance
+ * ENHANCED: Always ensures light backgrounds have dark text
  */
 export function resolveSectionTextColor(section: Section, theme: any): string {
   const bgToken = section.style?.background || 'bg';
+  const bgColor = resolveSectionBackground(section, theme);
 
+  // CRITICAL: Always calculate contrast to ensure readability
+  // Light backgrounds MUST have dark text, dark backgrounds MUST have light text
+  const bgLuminance = getLuminance(bgColor);
+  
   // If theme has accessible colors, use them for automatic contrast
   if (theme.accessible) {
     const accessibleTextMap: Record<string, string> = {
@@ -57,7 +63,6 @@ export function resolveSectionTextColor(section: Section, theme: any): string {
     // Safety check: verify the text color actually contrasts with the background
     // This prevents black-on-black or white-on-white issues
     if (theme.palette) {
-      const bgColor = resolveSectionBackground(section, theme);
       const contrast = getContrastRatio(bgColor, textColor);
 
       // If contrast is too low (less than 4.5:1 for text), recalculate
@@ -83,15 +88,17 @@ export function resolveSectionTextColor(section: Section, theme: any): string {
 
   // Fallback: calculate readable color based on background
   if (theme.palette) {
-    const bgColor = resolveSectionBackground(section, theme);
     return getReadableTextColor(bgColor, theme.palette);
   }
 
-  return theme.textColor;
+  // Ultimate fallback: use simple luminance-based contrast
+  // Light backgrounds (luminance > 0.5) get dark text (#000000)
+  // Dark backgrounds (luminance <= 0.5) get light text (#FFFFFF)
+  return bgLuminance > 0.5 ? '#000000' : '#FFFFFF';
 }
 
 /**
- * Get section padding values
+ * Get section padding values (respects metadata density)
  */
 export function getSectionPadding(section: Section, theme: Theme): {
   paddingX: number;
@@ -100,10 +107,28 @@ export function getSectionPadding(section: Section, theme: Theme): {
   const defaultPaddingX = theme.rhythm?.contentPaddingX ?? 16;
   const defaultPaddingY = theme.rhythm?.contentPaddingY ?? 24;
 
-  return {
-    paddingX: section.style?.paddingX ?? defaultPaddingX,
-    paddingY: section.style?.paddingY ?? defaultPaddingY,
-  };
+  // Apply explicit padding if set
+  let paddingX = section.style?.paddingX ?? defaultPaddingX;
+  let paddingY = section.style?.paddingY ?? defaultPaddingY;
+
+  // Apply density modifier from metadata
+  const density = section.metadata?.density;
+  if (density) {
+    switch (density) {
+      case "airy":
+        paddingY = Math.round(paddingY * 1.5); // 50% more vertical padding
+        break;
+      case "compact":
+        paddingY = Math.round(paddingY * 0.7); // 30% less vertical padding
+        break;
+      case "balanced":
+      default:
+        // No change
+        break;
+    }
+  }
+
+  return { paddingX, paddingY };
 }
 
 /**

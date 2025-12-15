@@ -83,7 +83,7 @@ Brand Information:
 - Name: ${brand.name}
 - Website: ${brand.website}
 - Logo: ${brand.logoUrl ? "Available" : "Not available"}
-- Hero Image: ${brand.heroImage ? "Available - can be used in hero/header sections for maximum visual impact" : "Not available"}
+- Hero Image: ${brand.heroImage ? "Available - automatically displayed in header sections for maximum visual impact" : "Not available"}
 - Voice: ${brand.voiceHints?.join(", ") || "neutral"}
 - Colors: Primary ${brand.colors.primary}, Background ${brand.colors.background}, Text ${brand.colors.text}
 - Fonts: Heading ${brand.fonts.heading}, Body ${brand.fonts.body}

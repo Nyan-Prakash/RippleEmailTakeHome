@@ -371,7 +371,7 @@ SECTION TYPES GUIDE:
 - "trustBar": Trust badges
 - "metricStrip": 1-3 big metrics/stats (NEW v2)
 - "faq": 3-6 Q&A pairs
-- "faqMini": 2-4 Q&A rows (NEW v2)
+- "faqMini": EXACTLY 3 Q&A pairs. Each answer MUST be 2-3 complete sentences with helpful detail (NEW v2)
 - "sectionTitle": Tiny kicker + title (NEW v2)
 - "dividerBand": Visual rhythm section (NEW v2)
 
@@ -463,6 +463,20 @@ Grid section:
   "blocks": [{"type": "productCard", "productRef": "prod-1"}, {"type": "productCard", "productRef": "prod-2"}]
 }
 
+FAQ Mini section (EXACTLY 3 Q&A pairs, each answer 2-3 sentences):
+{
+  "id": "faq-01",
+  "type": "faqMini",
+  "blocks": [
+    {"type": "heading", "text": "What is your return policy?", "level": 3},
+    {"type": "paragraph", "text": "We offer a 30-day money-back guarantee on all purchases. If you're not completely satisfied, simply contact our support team to initiate a return. We'll process your refund within 5-7 business days."},
+    {"type": "heading", "text": "How long does shipping take?", "level": 3},
+    {"type": "paragraph", "text": "Standard shipping typically takes 3-5 business days within the continental US. Expedited shipping options are available at checkout for faster delivery. International orders may take 7-14 business days depending on customs processing."},
+    {"type": "heading", "text": "Do you offer customer support?", "level": 3},
+    {"type": "paragraph", "text": "Yes, our customer support team is available 24/7 via email, phone, and live chat. We pride ourselves on responding to all inquiries within 2 hours during business hours. Our team is here to help with any questions or concerns you may have."}
+  ]
+}
+
 Generate ONLY valid JSON matching this structure. No markdown, no explanations.`;
 }
 
@@ -548,6 +562,7 @@ REQUIREMENTS (v2):
 - Use brand-derived palette tokens ONLY (no random hex in section styles)
 - **TEXT CONTRAST IS AUTOMATIC**: Only specify section.style.background. The renderer will automatically calculate contrasting text colors (dark backgrounds → light text, light backgrounds → dark text) to meet WCAG AA standards. DO NOT manually set text colors.
 - Write actual email copy in heading/paragraph/bullets blocks based on plan guidance
+- **faqMini sections**: MUST have EXACTLY 3 Q&A pairs. Each answer MUST be 2-3 complete, helpful sentences that provide real value. Questions should address common customer concerns related to the campaign goal. Format: heading (question) → paragraph (answer) → heading → paragraph → heading → paragraph.
 - **One primary CTA**: Use consistent button text (e.g., "${intent.cta?.primary || "Shop Now"}") in hero and ctaBanner sections
 - Prefer: featureGrid > multiple features, ctaBanner > secondaryCTA, testimonialCard > generic testimonial
 - Use bullets > paragraphs for benefits

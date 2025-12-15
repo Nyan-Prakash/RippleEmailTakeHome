@@ -612,6 +612,130 @@ export function validateEmailSpecStructure(args: {
     }
   }
 
+  // ===== NEW SECTION TYPE VALIDATIONS =====
+  
+  // Validate benefitsList has 3-6 items
+  spec.sections.forEach((section, sectionIdx) => {
+    if (section.type === "benefitsList") {
+      const bulletsBlocks = section.blocks.filter(b => b.type === "bullets");
+      bulletsBlocks.forEach((block: any, blockIdx) => {
+        if (block.items && (block.items.length < 3 || block.items.length > 6)) {
+          issues.push({
+            code: "BENEFITS_COUNT_INVALID",
+            severity: "warning",
+            message: `Benefits list should have 3-6 items (has ${block.items.length})`,
+            path: `sections[${sectionIdx}].blocks[${blockIdx}]`,
+          });
+        }
+      });
+    }
+  });
+
+  // Validate FAQ has 3-6 items
+  spec.sections.forEach((section, sectionIdx) => {
+    if (section.type === "faq" || section.type === "faqMini") {
+      // FAQ sections should have structured Q&A blocks
+      // For now, just check we have content
+      if (section.blocks.length < 3 || section.blocks.length > 6) {
+        issues.push({
+          code: "FAQ_COUNT_INVALID",
+          severity: "warning",
+          message: `FAQ section should have 3-6 Q&A pairs (has ${section.blocks.length} blocks)`,
+          path: `sections[${sectionIdx}]`,
+        });
+      }
+    }
+  });
+
+  // Validate navLinks have both text and href
+  spec.sections.forEach((section, sectionIdx) => {
+    section.blocks.forEach((block: any, blockIdx) => {
+      if (block.type === "navLinks" && block.links) {
+        if (block.links.length > 8) {
+          issues.push({
+            code: "TOO_MANY_NAV_LINKS",
+            severity: "warning",
+            message: `Nav links should have max 8 links (has ${block.links.length})`,
+            path: `sections[${sectionIdx}].blocks[${blockIdx}]`,
+          });
+        }
+        block.links.forEach((link: any, linkIdx: number) => {
+          if (!link.label || !link.url) {
+            issues.push({
+              code: "NAV_LINK_INCOMPLETE",
+              severity: "error",
+              message: "Nav link must have both label and url",
+              path: `sections[${sectionIdx}].blocks[${blockIdx}].links[${linkIdx}]`,
+            });
+          }
+        });
+      }
+    });
+  });
+
+  // Validate storySection has at least heading + body
+  spec.sections.forEach((section, sectionIdx) => {
+    if (section.type === "storySection") {
+      const hasHeading = section.blocks.some(b => b.type === "heading");
+      const hasContent = section.blocks.some(b => b.type === "paragraph" || b.type === "image");
+      
+      if (!hasHeading || !hasContent) {
+        issues.push({
+          code: "STORY_SECTION_INCOMPLETE",
+          severity: "warning",
+          message: "Story section should have at least a heading and body content",
+          path: `sections[${sectionIdx}]`,
+        });
+      }
+    }
+  });
+
+  // Validate socialProofGrid has logos
+  spec.sections.forEach((section, sectionIdx) => {
+    if (section.type === "socialProofGrid") {
+      const hasLogos = section.blocks.some(b => b.type === "logo" || b.type === "image");
+      
+      if (!hasLogos) {
+        issues.push({
+          code: "SOCIAL_PROOF_NO_LOGOS",
+          severity: "warning",
+          message: "Social proof grid should include logos or images",
+          path: `sections[${sectionIdx}]`,
+        });
+      }
+    }
+  });
+
+  // Check for too many CTAs (>3)
+  const totalCTAs = buttons.length;
+  if (totalCTAs > 3) {
+    issues.push({
+      code: "TOO_MANY_CTAS",
+      severity: "warning",
+      message: `Email has ${totalCTAs} buttons. Consider reducing to 3 or fewer for better focus`,
+      path: "sections",
+    });
+  }
+
+  // Check for dense copy (sum of paragraph lengths)
+  let totalParagraphLength = 0;
+  spec.sections.forEach((section) => {
+    section.blocks.forEach((block: any) => {
+      if (block.type === "paragraph") {
+        totalParagraphLength += block.text.length;
+      }
+    });
+  });
+
+  if (totalParagraphLength > 1500) {
+    issues.push({
+      code: "COPY_TOO_DENSE",
+      severity: "warning",
+      message: `Total paragraph text is ${totalParagraphLength} characters. Consider reducing for better scannability`,
+      path: "sections",
+    });
+  }
+
   return {
     ok: issues.filter(i => i.severity === "error").length === 0,
     issues,

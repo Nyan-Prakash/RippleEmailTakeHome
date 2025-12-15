@@ -59,6 +59,7 @@ export function extractProductsFromJsonLd(
 
 /**
  * Parse a single Product JSON-LD object
+ * ENHANCED: Better handling of offer variations, price ranges, and availability
  */
 function parseProductJsonLd(item: any, pageUrl: URL): ProductCandidate | null {
   const title = item.name || "";
@@ -67,31 +68,87 @@ function parseProductJsonLd(item: any, pageUrl: URL): ProductCandidate | null {
   // Extract price with multiple fallbacks and validation
   let price = "";
   if (item.offers) {
-    const offers = Array.isArray(item.offers) ? item.offers[0] : item.offers;
+    // Handle multiple offers - prioritize in-stock, lowest price
+    let offersList = Array.isArray(item.offers) ? item.offers : [item.offers];
+    
+    // Filter to in-stock offers if availability info is present
+    const inStockOffers = offersList.filter((o: any) => {
+      const availability = o.availability || "";
+      return !availability || 
+             availability.includes("InStock") || 
+             availability.includes("PreOrder") ||
+             availability.includes("OnlineOnly");
+    });
+    
+    if (inStockOffers.length > 0) {
+      offersList = inStockOffers;
+    }
+    
+    // Get the first/best offer
+    const offers = offersList[0];
 
-    // Try different price fields
+    // Try different price fields with priority
     let priceValue = offers.price || offers.lowPrice || offers.highPrice;
+    let currency = offers.priceCurrency || "";
+
+    // Handle AggregateOffer type (has lowPrice/highPrice)
+    if (offers["@type"] === "AggregateOffer") {
+      priceValue = offers.lowPrice || offers.highPrice || offers.price;
+    }
 
     // Handle price ranges - prefer lowPrice for consistency
     if (!priceValue && offers.priceSpecification) {
-      priceValue = offers.priceSpecification.price;
+      if (Array.isArray(offers.priceSpecification)) {
+        priceValue = offers.priceSpecification[0]?.price;
+        currency = offers.priceSpecification[0]?.priceCurrency || currency;
+      } else {
+        priceValue = offers.priceSpecification.price;
+        currency = offers.priceSpecification.priceCurrency || currency;
+      }
+    }
+
+    // Handle nested offers
+    if (!priceValue && offers.offers) {
+      const nestedOffer = Array.isArray(offers.offers) ? offers.offers[0] : offers.offers;
+      priceValue = nestedOffer.price || nestedOffer.lowPrice;
+      currency = nestedOffer.priceCurrency || currency;
     }
 
     if (priceValue) {
-      // Validate it's a valid number
-      const numPrice = parseFloat(String(priceValue).replace(/[^0-9.]/g, ""));
+      // Clean and validate the price value
+      const priceStr = String(priceValue);
+      const numPrice = parseFloat(priceStr.replace(/[^0-9.]/g, ""));
+      
       if (!isNaN(numPrice) && numPrice > 0) {
-        const currency = offers.priceCurrency || "";
-        price = currency ? `${currency} ${priceValue}` : String(priceValue);
+        // Format with currency if available
+        if (currency) {
+          // Normalize common currency codes to symbols
+          const currencySymbols: Record<string, string> = {
+            'USD': '$', 'CAD': 'C$', 'AUD': 'A$',
+            'GBP': '£', 'EUR': '€', 'JPY': '¥',
+            'CNY': '¥', 'INR': '₹', 'RUB': '₽'
+          };
+          const symbol = currencySymbols[currency] || currency;
+          
+          // Format the price nicely
+          if (priceStr.includes(".")) {
+            price = `${symbol}${numPrice.toFixed(2)}`;
+          } else {
+            price = `${symbol}${numPrice}`;
+          }
+        } else {
+          price = String(priceValue);
+        }
       }
     }
   }
 
   // Fallback to direct price field
   if (!price && item.price) {
-    const numPrice = parseFloat(String(item.price).replace(/[^0-9.]/g, ""));
+    const priceStr = String(item.price);
+    const numPrice = parseFloat(priceStr.replace(/[^0-9.]/g, ""));
     if (!isNaN(numPrice) && numPrice > 0) {
-      price = String(item.price);
+      price = priceStr.includes(".") ? `$${numPrice.toFixed(2)}` : `$${numPrice}`;
     }
   }
 
@@ -183,8 +240,10 @@ export function extractProductFromDom(
 
 /**
  * Extract price from DOM with comprehensive patterns and validation
+ * ENHANCED: Better sale price detection, strikethrough price avoidance, and scoring system
+ * EXPORTED: Now available for web search enhancement
  */
-function extractPrice($: CheerioAPI): string {
+export function extractPrice($: CheerioAPI): string {
   // Strategy 1: Try structured data first (most reliable)
   const structuredPrice = extractStructuredPrice($);
   if (structuredPrice) return structuredPrice;
@@ -193,64 +252,108 @@ function extractPrice($: CheerioAPI): string {
   const metaPrice = extractMetaPrice($);
   if (metaPrice) return metaPrice;
 
-  // Strategy 3: Try DOM selectors with priority ordering
+  // Strategy 3: Try DOM selectors with priority ordering and scoring
+  const priceCandidates: Array<{ price: string; score: number }> = [];
+
   const priceSelectors = [
-    // High priority - specific current/sale price
-    '[class*="sale-price"]:not([class*="original"]):not([class*="was"])',
-    '[class*="current-price"]:not([class*="original"]):not([class*="was"])',
-    '[class*="final-price"]:not([class*="original"]):not([class*="was"])',
-    '[class*="offer-price"]:not([class*="original"]):not([class*="was"])',
-    '[data-product-price]',
-    '[data-price]:not([data-price-type="original"])',
-    '[data-sale-price]',
+    // Highest priority - sale/current prices (score: 100-90)
+    { selector: '[class*="sale-price"]:not([class*="original"]):not([class*="was"]):not([class*="compare"])', score: 100 },
+    { selector: '[class*="current-price"]:not([class*="original"]):not([class*="was"])', score: 98 },
+    { selector: '[class*="final-price"]:not([class*="original"]):not([class*="was"])', score: 97 },
+    { selector: '[class*="special-price"]:not([class*="original"]):not([class*="was"])', score: 96 },
+    { selector: '[class*="offer-price"]:not([class*="original"]):not([class*="was"])', score: 95 },
+    { selector: '[data-product-price]:not([data-price-type="original"])', score: 94 },
+    { selector: '[data-sale-price]', score: 93 },
+    { selector: '[data-price]:not([data-price-type="original"]):not([data-price-type="compare"])', score: 92 },
+    { selector: '.price-now:not(.price-was)', score: 91 },
+    { selector: '.sale:not(.sale-old)', score: 90 },
 
-    // Medium priority - general price selectors
-    '.price:not(.price-was):not(.price-original)',
-    '[class*="product-price"]:not([class*="original"]):not([class*="was"])',
-    '[itemprop="price"]',
-    'span[class*="price"]:not([class*="original"]):not([class*="was"]):not([class*="compare"])',
+    // High priority - structured pricing (score: 89-80)
+    { selector: '[itemprop="price"]:not([itemprop="highPrice"])', score: 89 },
+    { selector: '[itemprop="lowPrice"]', score: 88 },
+    { selector: 'meta[itemprop="price"]', score: 87 },
+    { selector: '.product-price:not(.product-price-old):not(.product-price-was)', score: 85 },
+    { selector: '[class*="product-price"]:not([class*="original"]):not([class*="was"]):not([class*="old"])', score: 84 },
 
-    // Lower priority - broader selectors
-    '[class*="price"]',
-    '.price',
+    // Medium priority - general price selectors (score: 79-60)
+    { selector: '.price:not(.price-was):not(.price-original):not(.price-old):not(.price-compare)', score: 75 },
+    { selector: 'span[class*="price"]:not([class*="original"]):not([class*="was"]):not([class*="compare"]):not([class*="old"])', score: 70 },
+    { selector: 'div[class*="price"]:not([class*="original"]):not([class*="was"]):not([class*="compare"])', score: 65 },
+    { selector: '[data-test*="price"]:not([data-test*="original"])', score: 63 },
+    { selector: '[aria-label*="price" i]:not([aria-label*="original" i])', score: 62 },
+
+    // Lower priority - broad matchers (score: 59-40)
+    { selector: '[class*="price"]', score: 50 },
+    { selector: '.price', score: 45 },
+    { selector: '[id*="price"]', score: 40 },
   ];
 
-  for (const selector of priceSelectors) {
+  for (const { selector, score } of priceSelectors) {
     const elements = $(selector);
 
-    // Try each matching element
     elements.each((_, elem) => {
       const $elem = $(elem);
 
-      // Skip if this is clearly an old/original price
-      const className = ($elem.attr("class") || "").toLowerCase();
-      const id = ($elem.attr("id") || "").toLowerCase();
-      if (className.includes("was") || className.includes("original") ||
-          className.includes("compare") || className.includes("old") ||
-          id.includes("was") || id.includes("original")) {
-        return; // continue to next element
+      // Skip if element is hidden (display:none or visibility:hidden)
+      const style = $elem.attr("style") || "";
+      if (style.includes("display:none") || style.includes("visibility:hidden")) {
+        return;
       }
 
+      // Skip if element or its parent has strikethrough styling
+      const hasStrikethrough = 
+        style.includes("text-decoration:line-through") ||
+        style.includes("text-decoration: line-through") ||
+        $elem.parent().attr("style")?.includes("line-through");
+      
+      if (hasStrikethrough) return;
+
+      // Skip if this is clearly an old/original price by class/id
+      const className = ($elem.attr("class") || "").toLowerCase();
+      const id = ($elem.attr("id") || "").toLowerCase();
+      const dataAttrs = Object.keys($elem.attr() || {}).join(" ").toLowerCase();
+      
+      const isOldPrice = 
+        className.includes("was") || className.includes("original") ||
+        className.includes("compare") || className.includes("old") ||
+        className.includes("strike") || className.includes("regular") ||
+        id.includes("was") || id.includes("original") || id.includes("old") ||
+        dataAttrs.includes("original") || dataAttrs.includes("compare");
+
+      if (isOldPrice) return;
+
+      // Extract price text from various sources
       let priceText =
         $elem.attr("content") ||
         $elem.attr("data-price") ||
         $elem.attr("data-product-price") ||
+        $elem.attr("data-sale-price") ||
+        $elem.attr("aria-label") ||
         $elem.text().trim();
 
       if (priceText) {
         const cleaned = cleanAndExtractPrice(priceText);
         if (cleaned) {
-          return false; // break the loop by returning the price
+          // Boost score if element contains "sale" or "now"
+          let adjustedScore = score;
+          if (className.includes("sale") && !className.includes("old")) adjustedScore += 5;
+          if (className.includes("now")) adjustedScore += 3;
+          if (className.includes("current")) adjustedScore += 3;
+          
+          // Reduce score if element contains multiple prices (likely a range)
+          const priceMatches = priceText.match(/\d+[.,]\d+/g) || [];
+          if (priceMatches.length > 1) adjustedScore -= 20;
+
+          priceCandidates.push({ price: cleaned, score: adjustedScore });
         }
       }
     });
+  }
 
-    // Check if we found a price from this selector
-    const testPrice = elements.first().text().trim();
-    if (testPrice) {
-      const cleaned = cleanAndExtractPrice(testPrice);
-      if (cleaned) return cleaned;
-    }
+  // Sort candidates by score and return the best match
+  if (priceCandidates.length > 0) {
+    priceCandidates.sort((a, b) => b.score - a.score);
+    return priceCandidates[0].price;
   }
 
   return "N/A";
@@ -304,75 +407,148 @@ function extractMetaPrice($: CheerioAPI): string | null {
 
 /**
  * Clean and extract price from raw text with comprehensive patterns
+ * ENHANCED: Better handling of international formats, ranges, and sale prices
  */
 function cleanAndExtractPrice(rawText: string): string | null {
   if (!rawText || rawText.length === 0) return null;
 
-  // Remove extra whitespace
+  // Remove extra whitespace and normalize
   let text = rawText.replace(/\s+/g, " ").trim();
 
-  // Remove common non-price text
-  text = text.replace(/from/gi, "");
-  text = text.replace(/starting at/gi, "");
-  text = text.replace(/as low as/gi, "");
+  // Remove common non-price text patterns
+  text = text.replace(/\b(from|starting at|as low as|only|sale|save|now)\b/gi, "");
+  text = text.replace(/\b(per item|each|ea\.?)\b/gi, "");
+  
+  // Handle price ranges - extract the first (usually sale/current) price
+  // Pattern: $99 - $149 → $99
+  text = text.replace(/(\$\s*[\d,]+(?:\.\d{2})?)\s*[-–—]\s*\$\s*[\d,]+(?:\.\d{2})?/, "$1");
+  text = text.replace(/(£\s*[\d,]+(?:\.\d{2})?)\s*[-–—]\s*£\s*[\d,]+(?:\.\d{2})?/, "$1");
+  text = text.replace(/(€\s*[\d,]+(?:\.\d{2})?)\s*[-–—]\s*€\s*[\d,]+(?:\.\d{2})?/, "$1");
 
   // Comprehensive currency patterns (symbol or code)
   const currencyPatterns = [
-    // Major currencies with symbols
-    { regex: /\$\s*[\d,]+(?:\.\d{2})?/, symbol: "$" },
-    { regex: /£\s*[\d,]+(?:\.\d{2})?/, symbol: "£" },
-    { regex: /€\s*[\d,]+(?:\.\d{2})?/, symbol: "€" },
-    { regex: /¥\s*[\d,]+(?:\.\d{2})?/, symbol: "¥" },
-    { regex: /₹\s*[\d,]+(?:\.\d{2})?/, symbol: "₹" },
-    { regex: /₽\s*[\d,]+(?:\.\d{2})?/, symbol: "₽" },
-    { regex: /R\$\s*[\d,]+(?:\.\d{2})?/, symbol: "R$" },
-    { regex: /kr\s*[\d,]+(?:\.\d{2})?/, symbol: "kr" },
+    // Major currencies with symbols (prioritize these)
+    { regex: /\$\s*[\d,]+(?:\.\d{1,2})?/, symbol: "$", priority: 10 },
+    { regex: /£\s*[\d,]+(?:\.\d{1,2})?/, symbol: "£", priority: 10 },
+    { regex: /€\s*[\d,]+(?:\.\d{1,2})?/, symbol: "€", priority: 10 },
+    { regex: /¥\s*[\d,]+(?:\.\d{0,2})?/, symbol: "¥", priority: 9 },
+    { regex: /₹\s*[\d,]+(?:\.\d{0,2})?/, symbol: "₹", priority: 9 },
+    { regex: /₽\s*[\d,]+(?:\.\d{0,2})?/, symbol: "₽", priority: 8 },
+    { regex: /R\$\s*[\d,]+(?:\.\d{1,2})?/, symbol: "R$", priority: 8 },
+    { regex: /C\$\s*[\d,]+(?:\.\d{1,2})?/, symbol: "C$", priority: 8 },
+    { regex: /A\$\s*[\d,]+(?:\.\d{1,2})?/, symbol: "A$", priority: 8 },
+    { regex: /kr\.?\s*[\d,]+(?:\.\d{0,2})?/, symbol: "kr", priority: 7 },
+    { regex: /CHF\s*[\d,]+(?:\.\d{1,2})?/, symbol: "CHF", priority: 7 },
+    { regex: /zł\s*[\d,]+(?:\.\d{0,2})?/, symbol: "zł", priority: 7 },
+    { regex: /₪\s*[\d,]+(?:\.\d{0,2})?/, symbol: "₪", priority: 7 },
+    { regex: /฿\s*[\d,]+(?:\.\d{0,2})?/, symbol: "฿", priority: 7 },
 
     // Currency codes (3-letter ISO codes)
-    { regex: /USD\s*[\d,]+(?:\.\d{2})?/i, symbol: "USD" },
-    { regex: /EUR\s*[\d,]+(?:\.\d{2})?/i, symbol: "EUR" },
-    { regex: /GBP\s*[\d,]+(?:\.\d{2})?/i, symbol: "GBP" },
-    { regex: /CAD\s*[\d,]+(?:\.\d{2})?/i, symbol: "CAD" },
-    { regex: /AUD\s*[\d,]+(?:\.\d{2})?/i, symbol: "AUD" },
-    { regex: /JPY\s*[\d,]+(?:\.\d{2})?/i, symbol: "JPY" },
-    { regex: /INR\s*[\d,]+(?:\.\d{2})?/i, symbol: "INR" },
-    { regex: /CNY\s*[\d,]+(?:\.\d{2})?/i, symbol: "CNY" },
+    { regex: /USD\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "USD", priority: 9 },
+    { regex: /EUR\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "EUR", priority: 9 },
+    { regex: /GBP\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "GBP", priority: 9 },
+    { regex: /CAD\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "CAD", priority: 8 },
+    { regex: /AUD\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "AUD", priority: 8 },
+    { regex: /JPY\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "JPY", priority: 8 },
+    { regex: /INR\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "INR", priority: 8 },
+    { regex: /CNY\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "CNY", priority: 8 },
+    { regex: /RUB\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "RUB", priority: 7 },
+    { regex: /BRL\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "BRL", priority: 7 },
+    { regex: /MXN\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "MXN", priority: 7 },
+    { regex: /NZD\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "NZD", priority: 7 },
+    { regex: /SGD\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "SGD", priority: 7 },
+    { regex: /HKD\s*[\d,]+(?:\.\d{1,2})?/i, symbol: "HKD", priority: 7 },
+    { regex: /SEK\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "SEK", priority: 7 },
+    { regex: /NOK\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "NOK", priority: 7 },
+    { regex: /DKK\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "DKK", priority: 7 },
+    { regex: /PLN\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "PLN", priority: 7 },
+    { regex: /THB\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "THB", priority: 7 },
+    { regex: /ILS\s*[\d,]+(?:\.\d{0,2})?/i, symbol: "ILS", priority: 7 },
 
-    // Reversed (number before currency)
-    { regex: /[\d,]+(?:\.\d{2})?\s*USD/i, symbol: "USD" },
-    { regex: /[\d,]+(?:\.\d{2})?\s*EUR/i, symbol: "EUR" },
-    { regex: /[\d,]+(?:\.\d{2})?\s*GBP/i, symbol: "GBP" },
-    { regex: /[\d,]+(?:\.\d{2})?\s*CAD/i, symbol: "CAD" },
-    { regex: /[\d,]+(?:\.\d{2})?\s*AUD/i, symbol: "AUD" },
+    // Reversed formats (number before currency) - common in Europe
+    { regex: /[\d,]+(?:\.\d{1,2})?\s*USD/i, symbol: "USD", priority: 6 },
+    { regex: /[\d,]+(?:\.\d{1,2})?\s*EUR/i, symbol: "EUR", priority: 6 },
+    { regex: /[\d,]+(?:\.\d{1,2})?\s*GBP/i, symbol: "GBP", priority: 6 },
+    { regex: /[\d,]+(?:\.\d{1,2})?\s*CAD/i, symbol: "CAD", priority: 5 },
+    { regex: /[\d,]+(?:\.\d{1,2})?\s*AUD/i, symbol: "AUD", priority: 5 },
+    { regex: /[\d,]+(?:\.\d{1,2})?\s*CHF/i, symbol: "CHF", priority: 5 },
+    
+    // European format with comma as decimal separator (e.g., "99,99 €")
+    { regex: /[\d.]+,\d{1,2}\s*€/, symbol: "€", priority: 8 },
+    { regex: /[\d.]+,\d{1,2}\s*kr/, symbol: "kr", priority: 7 },
+    { regex: /[\d.]+,\d{1,2}\s*zł/, symbol: "zł", priority: 7 },
   ];
 
-  // Try currency patterns
+  // Sort patterns by priority and try to match
+  currencyPatterns.sort((a, b) => b.priority - a.priority);
+
   for (const { regex, symbol } of currencyPatterns) {
     const match = text.match(regex);
     if (match) {
       let price = match[0].trim();
-      // Ensure currency symbol is present
-      if (!price.includes(symbol)) {
-        price = `${symbol} ${price}`;
+      
+      // Normalize spacing
+      price = price.replace(/\s+/g, " ");
+      
+      // Ensure currency is properly formatted
+      if (symbol.length <= 2) {
+        // Symbol-based currency - ensure proper positioning
+        if (price.startsWith(symbol)) {
+          price = price.replace(symbol, "").trim();
+          price = `${symbol}${price}`;
+        } else {
+          price = `${symbol} ${price.replace(symbol, "").trim()}`;
+        }
       }
+      
       return price;
     }
   }
 
   // Fallback: Look for any number that looks like a price
-  // Must have at least 2 digits and optionally decimals
+  // Enhanced patterns to handle various international formats
   const numberPatterns = [
-    /\d{2,}[,.]?\d*(?:\.\d{2})?/,  // e.g., 99, 99.99, 1,234.56
-    /\d{1,3}(?:,\d{3})+(?:\.\d{2})?/,  // e.g., 1,234.56
+    { regex: /\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})/, description: "Standard with thousands" }, // 1,234.56 or 1.234,56
+    { regex: /\d{2,}(?:[.,]\d{2})/, description: "Simple with decimals" }, // 99.99 or 99,99
+    { regex: /\d{2,}/, description: "Simple integer" }, // 99
   ];
 
-  for (const pattern of numberPatterns) {
-    const match = text.match(pattern);
+  for (const { regex } of numberPatterns) {
+    const match = text.match(regex);
     if (match) {
       const numberStr = match[0];
-      // Validate it's a reasonable price (not a year, phone number, etc.)
-      const numValue = parseFloat(numberStr.replace(/,/g, ""));
-      if (!isNaN(numValue) && numValue > 0 && numValue < 1000000) {
+      
+      // Try to parse and validate
+      // Handle both comma and period as decimal separators
+      let numValue: number;
+      if (numberStr.includes(",") && numberStr.includes(".")) {
+        // Both present - determine which is decimal separator
+        const lastComma = numberStr.lastIndexOf(",");
+        const lastPeriod = numberStr.lastIndexOf(".");
+        if (lastComma > lastPeriod) {
+          // Comma is decimal separator (European format)
+          numValue = parseFloat(numberStr.replace(/\./g, "").replace(",", "."));
+        } else {
+          // Period is decimal separator (US format)
+          numValue = parseFloat(numberStr.replace(/,/g, ""));
+        }
+      } else if (numberStr.includes(",")) {
+        // Only comma - could be thousands or decimal separator
+        const parts = numberStr.split(",");
+        if (parts.length === 2 && parts[1].length === 2) {
+          // Likely decimal separator (e.g., 99,99)
+          numValue = parseFloat(numberStr.replace(",", "."));
+        } else {
+          // Likely thousands separator (e.g., 1,234 or 1,234,567)
+          numValue = parseFloat(numberStr.replace(/,/g, ""));
+        }
+      } else {
+        // No special characters or only period
+        numValue = parseFloat(numberStr.replace(/,/g, ""));
+      }
+      
+      // Validate it's a reasonable price
+      if (!isNaN(numValue) && numValue >= 0.01 && numValue < 10000000) {
         return numberStr;
       }
     }
@@ -383,8 +559,9 @@ function cleanAndExtractPrice(rawText: string): string | null {
 
 /**
  * Extract best product image with quality scoring
+ * EXPORTED: Now available for web search enhancement
  */
-function extractBestProductImage(
+export function extractBestProductImage(
   $: CheerioAPI,
   pageUrl: URL
 ): string | null {
@@ -515,7 +692,7 @@ function isValidImageUrl(url: string): boolean {
 
 /**
  * Extract products from a product listing/grid page
- * Detects product cards in grids, lists, and collections
+ * ENHANCED: Detects modern e-commerce platforms, better scoring, and React/Vue app support
  */
 export function extractProductsFromGrid(
   $: CheerioAPI,
@@ -525,18 +702,44 @@ export function extractProductsFromGrid(
   const seen = new Set<string>();
 
   // Strategy 1: Find product containers with comprehensive selectors
+  // Ordered by specificity and common e-commerce platforms
   const productContainerSelectors = [
+    // Shopify-specific selectors (most common)
     '[class*="product-item"]',
     '[class*="product-card"]',
+    '[data-product-id]',
+    '.product-grid-item',
+    '.grid__item[class*="product"]',
+    
+    // WooCommerce/WordPress
+    '.product.type-product',
+    'li.product',
+    '.woocommerce-loop-product',
+    
+    // Magento
+    '.product-item-info',
+    '.product.item',
+    
+    // BigCommerce
+    '.card[data-product-id]',
+    'article.card',
+    
+    // Custom/Modern frameworks
+    '[data-product]',
+    '[data-testid*="product"]',
+    '[data-test*="product"]',
     '[class*="product-grid-item"]',
     '[class*="collection-item"]',
-    '[data-product-id]',
-    '[data-product]',
-    '.product',
     '[class*="grid-product"]',
     '[class*="product-tile"]',
+    '[class*="product-box"]',
+    '[class*="item-card"]',
+    
+    // Generic but effective
     'article[class*="product"]',
     'li[class*="product"]',
+    'div[class*="product-wrapper"]',
+    '.product',
   ];
 
   for (const containerSelector of productContainerSelectors) {
@@ -622,23 +825,61 @@ export function extractProductsFromGrid(
         }
       }
 
-      // Extract image
+      // Extract image with enhanced lazy-loading support
       let image = "";
-      const $img = $container.find("img").first();
-      if ($img.length) {
+      const $imgs = $container.find("img");
+      
+      // Try multiple images and score them
+      const imageCandidates: Array<{ url: string; score: number }> = [];
+      
+      $imgs.each((_, imgElem) => {
+        const $img = $(imgElem);
+        
+        // Try multiple attribute sources for lazy-loaded images
         const src =
           $img.attr("src") ||
           $img.attr("data-src") ||
           $img.attr("data-original") ||
           $img.attr("data-lazy") ||
-          $img.attr("data-srcset")?.split(",")[0]?.split(" ")[0];
+          $img.attr("data-lazy-src") ||
+          $img.attr("data-srcset")?.split(",")[0]?.split(" ")[0] ||
+          $img.attr("data-image") ||
+          $img.attr("srcset")?.split(",")[0]?.split(" ")[0];
 
-        if (src) {
+        if (src && !src.includes("data:image")) {
           const resolved = resolveUrl(src, pageUrl);
           if (resolved && isValidImageUrl(resolved.toString())) {
-            image = resolved.toString();
+            const url = resolved.toString();
+            
+            // Score based on image attributes and position
+            let score = 50;
+            const className = ($img.attr("class") || "").toLowerCase();
+            const alt = ($img.attr("alt") || "").toLowerCase();
+            
+            // Boost score for primary product images
+            if (className.includes("primary") || className.includes("main")) score += 20;
+            if (className.includes("featured")) score += 15;
+            if (alt.includes("product")) score += 10;
+            
+            // Boost for larger images
+            const width = parseInt($img.attr("width") || "0");
+            const height = parseInt($img.attr("height") || "0");
+            if (width > 300 || height > 300) score += 15;
+            if (width > 600 || height > 600) score += 5;
+            
+            // Reduce score for thumbnails
+            if (className.includes("thumb") || className.includes("small")) score -= 20;
+            if (width > 0 && width < 200) score -= 15;
+            
+            imageCandidates.push({ url, score });
           }
         }
+      });
+      
+      // Select the best image candidate
+      if (imageCandidates.length > 0) {
+        imageCandidates.sort((a, b) => b.score - a.score);
+        image = imageCandidates[0].url;
       }
 
       // Only add if we have all required fields

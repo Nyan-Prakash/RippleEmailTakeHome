@@ -226,6 +226,107 @@ export async function compileMjmlToHtml(
 }
 
 /**
+ * Render FAQ Mini section with beautiful Q&A styling
+ */
+function renderFaqMiniSection(
+  section: Section,
+  theme: any,
+  bgColor: string,
+  textColor: string,
+  paddingX: number,
+  paddingY: number
+): string {
+  // Group blocks into Q&A pairs (heading followed by paragraph)
+  const qaPairs: { question: string; answer: string }[] = [];
+  
+  // Find all headings that are followed by paragraphs
+  for (let i = 0; i < section.blocks.length; i++) {
+    const currentBlock = section.blocks[i];
+    
+    // Look for heading blocks
+    if (currentBlock?.type === "heading") {
+      // Look ahead to find the next paragraph (skip any intermediate headings)
+      for (let j = i + 1; j < section.blocks.length; j++) {
+        const nextBlock = section.blocks[j];
+        
+        if (nextBlock?.type === "paragraph") {
+          // Found a paragraph - this is an answer to the current heading
+          qaPairs.push({
+            question: (currentBlock as any).text || "",
+            answer: (nextBlock as any).text || ""
+          });
+          i = j; // Skip to the paragraph we just processed
+          break;
+        } else if (nextBlock?.type === "heading") {
+          // Found another heading before a paragraph - current heading is not a question
+          break;
+        }
+      }
+    }
+  }
+  
+  // Use primary color for accent (question number circles)
+  const accentColor = theme.palette?.primary || theme.primaryColor || "#007BFF";
+  
+  // If no Q&A pairs found, return section with just the title
+  if (qaPairs.length === 0) {
+    return `
+  <mj-section background-color="${bgColor}" padding-left="${paddingX}px" padding-right="${paddingX}px" padding-top="${paddingY}px" padding-bottom="${paddingY}px">
+    <mj-column width="100%">
+      <mj-text font-size="24px" font-weight="600" color="${textColor}" padding-bottom="24px" align="left">
+        Frequently Asked Questions
+      </mj-text>
+      <mj-text color="${textColor}" font-size="15px" line-height="1.6" padding-top="12px">
+        No FAQ items available. Please ensure the section has heading and paragraph blocks in alternating order.
+      </mj-text>
+    </mj-column>
+  </mj-section>
+  `;
+  }
+  
+  // Generate FAQ items
+  const faqItems = qaPairs.map((qa, index) => {
+    const questionNumber = index + 1;
+    
+    return `
+        <!-- FAQ Item ${questionNumber} -->
+        <mj-text padding-bottom="8px" padding-top="${index === 0 ? '0' : '24px'}">
+          <table cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="width: 40px; vertical-align: top; padding-right: 12px;">
+                <div style="width: 32px; height: 32px; background-color: ${accentColor}; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 16px; line-height: 32px; text-align: center;">
+                  ${questionNumber}
+                </div>
+              </td>
+              <td style="vertical-align: top;">
+                <div style="font-size: 18px; font-weight: 600; color: ${textColor}; line-height: 1.4; margin: 0; padding: 6px 0 0 0;">
+                  ${escapeHtml(qa.question)}
+                </div>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+        
+        <!-- Answer -->
+        <mj-text color="${textColor}" font-size="15px" line-height="1.6" padding-left="44px" padding-top="0" padding-bottom="0">
+          ${escapeHtml(qa.answer)}
+        </mj-text>`;
+  }).join('\n');
+
+  return `
+  <mj-section background-color="${bgColor}" padding-left="${paddingX}px" padding-right="${paddingX}px" padding-top="${paddingY}px" padding-bottom="${paddingY}px">
+    <mj-column width="100%">
+      <!-- FAQ Section Title -->
+      <mj-text font-size="24px" font-weight="600" color="${textColor}" padding-bottom="24px" align="left">
+        Frequently Asked Questions
+      </mj-text>
+      ${faqItems}
+    </mj-column>
+  </mj-section>
+  `;
+}
+
+/**
  * Render a section to MJML
  */
 function renderSection(
@@ -245,10 +346,38 @@ function renderSection(
   const paddingX = padding.paddingX;
   const paddingY = padding.paddingY;
 
-  // Check if this is a header section (not hero) and we have a hero image
-  const isHeaderSection = section.type === "header" || section.type === "navHeader" || section.type === "announcementBar";
-  const shouldShowHeroImage = isHeaderSection && brandContext?.brand?.heroImage;
-  const heroImage = shouldShowHeroImage ? brandContext?.brand?.heroImage : null;
+  // Special handling for faqMini sections - render with beautiful Q&A styling
+  if (section.type === "faqMini") {
+    return renderFaqMiniSection(section, theme, bgColor, textColor, paddingX, paddingY);
+  }
+
+  // Hero image logic:
+  // - Header section ONLY: Show hero image (brand image or product image)
+  // - Hero section: Show product image if available, otherwise search for brand image
+  // - All other sections: No hero image
+  const isHeaderSection = section.type === "header";
+  const isHeroSection = section.type === "hero";
+  let heroImageToShow: { url: string; alt: string } | null = null;
+
+  if (isHeaderSection && brandContext?.brand?.heroImage) {
+    // Header section: Show brand hero image ONLY at the very top
+    heroImageToShow = brandContext.brand.heroImage;
+  } else if (isHeroSection && brandContext) {
+    // Hero section: ONLY show product image if available
+    // DO NOT show the same hero image - that's only for header section
+    if (brandContext.catalog && brandContext.catalog.length > 0) {
+      const firstProduct = brandContext.catalog[0];
+      if (firstProduct.image) {
+        heroImageToShow = {
+          url: firstProduct.image,
+          alt: firstProduct.title || `${brandContext.brand.name} product`,
+        };
+      }
+    }
+    
+    // Note: If no product image is available, heroImageToShow remains null
+    // The web scraper should populate a separate brand lifestyle image in the future
+  }
 
   // Handle layout
   const layout = section.layout || { variant: "single" };
@@ -257,13 +386,18 @@ function renderSection(
 
   if (layout.variant === "single") {
     // Single column with optional hero image at the top
-    const heroImageMjml = heroImage 
-      ? `      <mj-image src="${escapeHtml(heroImage.url)}" alt="${escapeHtml(heroImage.alt || brandContext?.brand?.name + ' hero image' || 'Hero image')}" fluid-on-mobile="true" padding="0 0 ${Math.max(paddingY - 8, 8)}px 0" />\n` 
+    const heroImageMjml = heroImageToShow 
+      ? `      <mj-image src="${escapeHtml(heroImageToShow.url)}" alt="${escapeHtml(heroImageToShow.alt)}" fluid-on-mobile="true" padding="0 0 ${Math.max(paddingY - 8, 8)}px 0" />\n` 
       : '';
+    
+    // For hero sections, skip the first image block since we're showing it as hero image
+    const blocksToRender = isHeroSection && heroImageToShow
+      ? section.blocks.filter((block, index) => !(index === 0 && block.type === "image"))
+      : section.blocks;
     
     columnsContent = `
     <mj-column>
-${heroImageMjml}${section.blocks.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
+${heroImageMjml}${blocksToRender.map((block) => renderBlock(block, theme, catalogLookup, warnings, section.id, section.type, bgColor, textColor)).join("\n")}
     </mj-column>
     `;
   } else if (layout.variant === "twoColumn") {
@@ -462,13 +596,39 @@ function renderHeadingBlock(block: any, theme: any, sectionType?: string, sectio
 }
 
 /**
+ * Get paragraph style attributes based on style property
+ */
+function getParagraphStyleAttributes(style?: string): { lineHeight?: string; paddingBottom?: string } {
+  switch (style) {
+    case "editorial":
+      return { lineHeight: "1.8", paddingBottom: "20px" };
+    case "scannable":
+      return { lineHeight: "1.6", paddingBottom: "16px" };
+    case "emotional":
+      return { lineHeight: "1.7", paddingBottom: "18px" };
+    case "technical":
+      return { lineHeight: "1.6", paddingBottom: "12px" };
+    case "minimal":
+      return { lineHeight: "1.5", paddingBottom: "8px" };
+    default:
+      return { lineHeight: "1.6", paddingBottom: "12px" };
+  }
+}
+
+/**
  * Render paragraph block
  */
 function renderParagraphBlock(block: any, theme: any, sectionTextColor?: string): string {
   const align = block.align || "left";
   // Always set explicit color - use section color if available, otherwise theme default
   const textColor = sectionTextColor || theme.textColor;
-  return `      <mj-text align="${align}" color="${textColor}">${escapeHtml(block.text)}</mj-text>`;
+  
+  // Apply style-based attributes
+  const styleAttrs = getParagraphStyleAttributes(block.style);
+  const lineHeight = styleAttrs.lineHeight || "1.6";
+  const paddingBottom = styleAttrs.paddingBottom || "12px";
+  
+  return `      <mj-text align="${align}" color="${textColor}" line-height="${lineHeight}" padding-bottom="${paddingBottom}">${escapeHtml(block.text)}</mj-text>`;
 }
 
 /**
@@ -581,8 +741,8 @@ function renderProductCardBlock(
   // Add product title
   parts.push(`      <mj-text align="center" font-weight="bold" font-size="18px" padding="12px 16px 0 16px">${escapeHtml(product.title)}</mj-text>`);
   
-  // Add price if available
-  if (product.price) {
+  // Add price if available and not "N/A"
+  if (product.price && product.price !== "N/A" && product.price.trim().toLowerCase() !== "n/a") {
     // Use high-contrast text color instead of primaryColor to ensure readability
     const priceColor = theme.textColor || theme.palette?.ink || "#111111";
     parts.push(`      <mj-text align="center" font-weight="bold" font-size="18px" color="${priceColor}" padding="8px 16px 0 16px">${escapeHtml(product.price)}</mj-text>`);

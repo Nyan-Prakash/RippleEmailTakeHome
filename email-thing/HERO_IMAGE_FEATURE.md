@@ -1,7 +1,7 @@
 # Hero Image Feature Implementation
 
 ## Overview
-This feature automatically extracts and displays hero/banner images from brand websites during scraping, then displays them prominently in the email hero sections and brand profile.
+This feature automatically extracts and displays hero/banner images from brand websites during scraping, then displays them prominently in the email header sections and brand profile.
 
 ## What Was Added
 
@@ -35,14 +35,14 @@ This feature automatically extracts and displays hero/banner images from brand w
 ### 5. Email Rendering
 - **File**: `lib/render/mjml/renderEmailSpec.ts`
 - Updated `renderEmailSpecToMjml()` to accept optional `brandContext`
-- Automatically injects hero image at top of hero/header/navHeader sections
+- Automatically injects hero image at top of header/navHeader/announcementBar sections ONLY (not in hero sections)
 - Uses fluid-on-mobile for responsive display
 - Proper spacing with section content
 
 ### 6. LLM Prompts
 - **Files**: `lib/llm/planEmail.ts`, `lib/llm/generateEmailSpec.ts`
 - Updated prompts to mention hero image availability
-- LLMs are informed when a hero image is available for use in hero sections
+- LLMs are informed when a hero image is available for use in header sections
 
 ### 7. API Route
 - **File**: `app/api/email/render/route.ts`
@@ -66,7 +66,7 @@ This feature automatically extracts and displays hero/banner images from brand w
 1. User creates campaign intent
 2. LLM generates email plan (informed about hero image availability)
 3. LLM generates email spec with hero section
-4. When rendering, hero image is automatically injected into hero/header sections
+4. When rendering, hero image is automatically injected into header sections only (not hero sections)
 5. Final email displays beautiful hero image at top
 
 ### Automatic Hero Image Display
@@ -89,7 +89,7 @@ The image appears:
 - Shows before logo and other brand details
 
 ### Email Preview
-- Hero image automatically appears in hero sections
+- Hero image automatically appears in header sections only
 - Responsive and mobile-friendly
 - Professional appearance matching brand website
 

@@ -70,6 +70,8 @@ export const ParagraphBlockSchema = z.object({
   type: z.literal("paragraph"),
   text: createSanitizedStringSchema(1),
   align: AlignmentSchema.optional(),
+  style: z.enum(["editorial", "scannable", "emotional", "technical", "minimal"]).optional(),
+  targetLength: z.enum(["1 sentence", "2-3 sentences", "short", "medium", "long"]).optional(),
 });
 
 export type ParagraphBlock = z.infer<typeof ParagraphBlockSchema>;

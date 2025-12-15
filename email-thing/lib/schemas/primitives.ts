@@ -143,6 +143,58 @@ export const AlignmentSchema = z.enum(["left", "center", "right"]);
 export type Alignment = z.infer<typeof AlignmentSchema>;
 
 /**
+ * Section intent (influences rendering and copy)
+ */
+export const SectionIntentSchema = z.enum([
+  "emotion",
+  "conversion",
+  "education",
+  "trust",
+]);
+
+export type SectionIntent = z.infer<typeof SectionIntentSchema>;
+
+/**
+ * Section density (influences spacing)
+ */
+export const SectionDensitySchema = z.enum(["airy", "balanced", "compact"]);
+
+export type SectionDensity = z.infer<typeof SectionDensitySchema>;
+
+/**
+ * Section emphasis level (influences typography)
+ */
+export const SectionEmphasisSchema = z.enum(["low", "medium", "high"]);
+
+export type SectionEmphasis = z.infer<typeof SectionEmphasisSchema>;
+
+/**
+ * Paragraph style (influences rendering and copy generation)
+ */
+export const ParagraphStyleSchema = z.enum([
+  "editorial",
+  "scannable",
+  "emotional",
+  "technical",
+  "minimal",
+]);
+
+export type ParagraphStyle = z.infer<typeof ParagraphStyleSchema>;
+
+/**
+ * Target length for paragraph copy
+ */
+export const TargetLengthSchema = z.enum([
+  "1 sentence",
+  "2-3 sentences",
+  "short",
+  "medium",
+  "long",
+]);
+
+export type TargetLength = z.infer<typeof TargetLengthSchema>;
+
+/**
  * Heading levels (h1, h2, h3)
  * 
  * Header sections (header, navHeader, announcementBar) render with significantly larger fonts:

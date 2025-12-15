@@ -24,6 +24,7 @@ import {
   mergeAndDedupeProducts,
   type ProductCandidate,
 } from "./extract/products";
+import { enhanceProductsWithWebSearch } from "./webSearch";
 
 /**
  * Scrape brand context from a website
@@ -152,7 +153,57 @@ export async function scrapeBrand(brandUrl: string): Promise<BrandContext> {
     }
 
     // 9. Merge and dedupe products, cap at 8
-    const uniqueProducts = mergeAndDedupeProducts(allProducts).slice(0, 8);
+    let uniqueProducts = mergeAndDedupeProducts(allProducts).slice(0, 8);
+
+    // 9.5. Enhance products with web search for missing images/prices
+    // Check if any products need enhancement
+    const needsEnhancement = uniqueProducts.some(
+      (p) => !p.image || p.image === "" || !p.price || p.price === "N/A" || p.price === ""
+    );
+
+    if (needsEnhancement && page) {
+      console.log("Some products missing images or prices, searching web...");
+      try {
+        const enhanced = await enhanceProductsWithWebSearch(
+          page,
+          uniqueProducts,
+          brandName,
+          6 // Max 6 searches to avoid timeout (3 seconds budget)
+        );
+        
+        // Log enhancement results
+        const enhancedCount = enhanced.filter(p => p.foundImage || p.foundPrice).length;
+        if (enhancedCount > 0) {
+          console.log(`Successfully enhanced ${enhancedCount} products via web search`);
+        }
+        
+        uniqueProducts = enhanced;
+      } catch (error) {
+        console.warn("Web search enhancement failed, using original products:", error);
+        // Continue with original products if enhancement fails
+      }
+    }
+
+    // 9.6. If no hero image and no products with images, search for a brand image
+    let finalHeroImage = heroImage;
+    if (!finalHeroImage && uniqueProducts.length === 0 && page) {
+      console.log("No hero image and no products, searching for brand image...");
+      try {
+        const { searchForBrandImage } = await import("./webSearch");
+        const brandImage = await searchForBrandImage(page, brandName, homepageUrl.toString());
+        
+        if (brandImage) {
+          console.log(`Found brand image via web search: ${brandImage}`);
+          finalHeroImage = {
+            url: brandImage,
+            alt: `${brandName} brand image`,
+          };
+        }
+      } catch (error) {
+        console.warn("Brand image search failed:", error);
+        // Continue without hero image
+      }
+    }
 
     // 10. Build BrandContext
     const brandContext: BrandContext = {
@@ -160,7 +211,7 @@ export async function scrapeBrand(brandUrl: string): Promise<BrandContext> {
         name: brandName,
         website: homepageUrl.toString(),
         logoUrl: logoUrl,
-        heroImage: heroImage || undefined,
+        heroImage: finalHeroImage || undefined,
         colors: {
           primary: colors.primary,
           background: colors.background,

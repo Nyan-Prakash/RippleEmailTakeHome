@@ -217,6 +217,19 @@ export type Layout =
   | z.infer<typeof GridLayoutSchema>;
 
 /**
+ * Section metadata (influences rendering and copy generation)
+ */
+export const SectionMetadataSchema = z.object({
+  intent: z.enum(["emotion", "conversion", "education", "trust"]).optional(),
+  density: z.enum(["airy", "balanced", "compact"]).optional(),
+  emphasis: z.enum(["low", "medium", "high"]).optional(),
+  voice: z.array(z.string().trim()).max(5, "Max 5 voice descriptors").optional(),
+  avoid: z.array(z.string().trim()).max(5, "Max 5 avoid descriptors").optional(),
+});
+
+export type SectionMetadata = z.infer<typeof SectionMetadataSchema>;
+
+/**
  * Section (one stack unit in the email)
  */
 export const SectionSchema = z.object({
@@ -226,6 +239,7 @@ export const SectionSchema = z.object({
   layout: LayoutSchema.optional(),
   blocks: z.array(BlockSchema),
   style: SectionStyleSchema.optional(),
+  metadata: SectionMetadataSchema.optional(),
 });
 
 export type Section = z.infer<typeof SectionSchema>;

@@ -30,7 +30,7 @@ describe("extractProductsFromJsonLd", () => {
 
     expect(products).toHaveLength(1);
     expect(products[0].title).toBe("Test Product");
-    expect(products[0].price).toBe("USD 99.99");
+    expect(products[0].price).toBe("$99.99"); // Enhanced: USD normalized to $
     expect(products[0].image).toBe("https://example.com/images/product.jpg");
     expect(products[0].url).toBe("https://example.com/products/test");
   });
@@ -78,7 +78,9 @@ describe("extractProductsFromJsonLd", () => {
 
     expect(products).toHaveLength(2);
     expect(products[0].title).toBe("Product A");
+    expect(products[0].price).toBe("$10.00"); // Enhanced: USD normalized to $
     expect(products[1].title).toBe("Product B");
+    expect(products[1].price).toBe("$20.00"); // Enhanced: USD normalized to $
   });
 
   it("should handle missing fields gracefully", () => {
