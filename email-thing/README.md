@@ -1,6 +1,6 @@
-# AI Marketing Email Generator
+# Emailify – AI-Powered Email Generator
 
-A production-quality AI system that generates sendable, brand-accurate marketing emails using a structured JSON → renderer architecture. This system demonstrates how LLMs should design _what_ to say and _which components_ to use—not _how pixels are placed_.
+A production-quality AI system that generates sendable, brand-accurate marketing emails using a structured JSON → renderer architecture. Emailify demonstrates how LLMs should design _what_ to say and _which components_ to use—not _how pixels are placed_.
 
 ## Overview
 

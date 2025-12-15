@@ -358,16 +358,17 @@ SECTION TYPES GUIDE:
 
 **Main Content Sections:**
 - "hero": Main banner with headline, image, CTA
-- "benefitsList": Headline + bullet points highlighting features/benefits
+- "benefitsList": Headline + bullet points highlighting features/benefits (each bullet should be 1-2 sentences, not just keywords)
 - "feature": Feature highlight section
-- "featureGrid": 2-3 benefit blocks with icons (NEW v2)
-- "storySection": Image + headline + paragraph + link (use for brand story, about, etc.)
+- "featureGrid": 2-3 benefit blocks with icons - each should have a heading + 2-3 sentence paragraph explaining the benefit (NEW v2)
+- "storySection": Image + headline + 2-3 rich paragraphs telling brand story, mission, or about the company. Use for "Our Story", "About Us", "Why We Started", etc. Each paragraph should be 3-4 sentences with emotional resonance and authentic detail.
+- "founderNote": Personal message from founder/CEO with heading + 3-4 paragraph blocks. Should feel authentic, vulnerable, and connect the founder's vision to customer benefit. Use sparingly for relationship-building campaigns.
 - "productGrid": Product showcase
-- "productSpotlight": Single product card + bullets + CTA (NEW v2)
+- "productSpotlight": Single product card + 4-6 detailed bullet points + compelling CTA. Bullets should explain features AND benefits (NEW v2)
 - "comparison": Before/after or without/with in 2 columns (NEW v2)
 - "socialProofGrid": Grid of logos (press, partners, certifications)
-- "testimonial": Customer testimonials
-- "testimonialCard": Quote + person + company (NEW v2)
+- "testimonial": Customer testimonials - use full quotes with context (3-5 sentences), not just soundbites
+- "testimonialCard": Quote (2-3 sentences minimum) + person + company/context (NEW v2)
 - "trustBar": Trust badges
 - "metricStrip": 1-3 big metrics/stats (NEW v2)
 - "faq": 3-6 Q&A pairs
@@ -421,17 +422,67 @@ CRITICAL RULES (v2):
 10. Footer MUST contain a smallPrint block with {{unsubscribe}} token
 11. **One primary CTA**: Use consistent button text for primary CTA (repeat in hero and ctaBanner)
 12. All section IDs must be unique
+13. **HIGH-QUALITY CONTENT REQUIREMENTS**:
+    - ALL paragraphs must be 3-4 complete sentences minimum (not fragments or single sentences)
+    - Bullet points must be full sentences with specific details, not just keywords
+    - StorySection paragraphs should be rich, authentic, and emotionally engaging (3-4 sentences each)
+    - FounderNote sections should include 3-4 paragraph blocks with personal, vulnerable storytelling
+    - Testimonials must be detailed quotes (3-5 sentences) with context, not soundbites
+    - FAQ answers must be comprehensive (2-3 sentences) with actionable information
+    - FeatureGrid blocks should have heading + 2-3 sentence explanatory paragraph
+    - ProductSpotlight bullets should explain both feature AND customer benefit (1-2 sentences each)
 13. LAYOUT RULES:
     - Single column (default): Omit layout field OR set {"variant": "single"}, put blocks in section.blocks array
-    - Two columns: {"variant": "twoColumn", "columns": [{"width": "50%", "blocks": [...]}, {"width": "50%", "blocks": [...]}]}, set section.blocks to []
+    - Two columns: MUST use EXACTLY this structure:
+      {
+        "variant": "twoColumn",
+        "columns": [
+          {"width": "50%", "blocks": [/* left column blocks */]},
+          {"width": "50%", "blocks": [/* right column blocks */]}
+        ]
+      }
+      AND set section.blocks to [] (empty array)
+      NOTE: "columns" MUST be an array with EXACTLY 2 objects, each with "width" (string ending in %) and "blocks" (array)
     - Grid: {"variant": "grid", "columns": 2 or 3, "gap": 16}, put blocks in section.blocks array
     - CRITICAL: variant must be EXACTLY "single", "twoColumn", or "grid" (case-sensitive, no spaces)
+    - CRITICAL: For twoColumn, "columns" field is REQUIRED and must be a 2-element array
 
 EXAMPLE SECTION SEQUENCES (5-8 sections recommended):
 **Launch campaign**: announcementBar → hero → featureGrid → productSpotlight → testimonialCard → ctaBanner → footer
 **Sale campaign**: header → hero → productGrid → metricStrip → faqMini → ctaBanner → footer  
 **Newsletter**: navHeader → hero → storySection → featureGrid → testimonialCard → ctaBanner → footer
+**Brand storytelling**: header → hero → storySection → founderNote → socialProofGrid → ctaBanner → footer
+**Relationship-building**: navHeader → hero → storySection → testimonialCard → faqMini → ctaBanner → footer
 **Reactivation**: header → hero → benefitsList → socialProofGrid → ctaBanner → footer
+
+CONTENT QUALITY EXAMPLES:
+
+**HIGH-QUALITY storySection** (About Us / Brand Story):
+{
+  "id": "story-01",
+  "type": "storySection",
+  "blocks": [
+    {"type": "heading", "text": "Our Story: Born from Frustration, Built with Purpose", "level": 2},
+    {"type": "paragraph", "text": "In 2019, our founder Sarah was juggling a demanding career while trying to maintain a healthy lifestyle. She spent countless hours researching supplements, only to find confusing labels, dubious claims, and products filled with unnecessary additives. The frustration reached a breaking point when she realized the industry prioritized profits over people's wellbeing. That's when she decided to create something different."},
+    {"type": "paragraph", "text": "We started in a small lab with one mission: create supplements that we'd be proud to give our own families. Every ingredient is sourced from certified organic farms, tested by third-party labs, and formulated by nutrition scientists who actually care about your health. We stripped away the marketing fluff and focused on what matters—real ingredients, real results, real transparency. Today, over 50,000 families trust us to support their wellness journey."},
+    {"type": "paragraph", "text": "What makes us different isn't just our products—it's our promise. We publish every test result, source every ingredient ethically, and back everything with a 60-day money-back guarantee because we believe you deserve to feel confident about what you put in your body. Join us in redefining what wellness companies should be."},
+    {"type": "button", "text": "Discover Our Standards", "href": "https://example.com/about"}
+  ]
+}
+
+**HIGH-QUALITY founderNote**:
+{
+  "id": "founder-01",
+  "type": "founderNote",
+  "blocks": [
+    {"type": "heading", "text": "A Personal Note from Sarah, Founder & CEO", "level": 2},
+    {"type": "paragraph", "text": "I still remember the morning that changed everything. I was standing in my kitchen, surrounded by vitamin bottles, feeling overwhelmed and honestly a bit betrayed. I'd spent years trusting brands that turned out to prioritize their bottom line over my health. As a working mother of two, I didn't have time to become a biochemistry expert—I just wanted products that worked and companies that cared."},
+    {"type": "paragraph", "text": "That frustration became my fuel. I spent the next two years working with nutritionists, visiting organic farms, and learning everything about supplement manufacturing. I discovered that creating truly clean, effective products wasn't impossible—it just required putting people before profits. The industry said consumers wouldn't pay for premium ingredients. They said transparency would hurt sales. They were wrong on both counts."},
+    {"type": "paragraph", "text": "Today, when I see emails from customers telling me their lives have changed, I'm reminded why we do this work. Every bottle we ship represents a promise: that your health matters more than our margins. That you deserve to know exactly what you're taking and why. That wellness should be accessible, honest, and effective."},
+    {"type": "paragraph", "text": "Thank you for trusting us with your wellbeing. We don't take that responsibility lightly."},
+    {"type": "paragraph", "text": "With gratitude,\nSarah Chen\nFounder & CEO"}
+  ]
+}
 
 LAYOUT EXAMPLES:
 Single column section (most common):
@@ -441,19 +492,24 @@ Single column section (most common):
   "blocks": [{"type": "heading", "text": "Welcome"}, {"type": "button", "text": "Shop Now", "href": "..."}]
 }
 
-Two-column section:
+Two-column section (CRITICAL - columns field is REQUIRED with EXACTLY 2 elements):
 {
   "id": "feature-01",
   "type": "feature",
   "layout": {
     "variant": "twoColumn",
     "columns": [
-      {"width": "50%", "blocks": [{"type": "image", "src": "...", "alt": "..."}]},
-      {"width": "50%", "blocks": [{"type": "heading", "text": "..."}, {"type": "paragraph", "text": "..."}]}
+      {"width": "50%", "blocks": [{"type": "image", "src": "https://example.com/image.jpg", "alt": "Feature image"}]},
+      {"width": "50%", "blocks": [{"type": "heading", "text": "Amazing Feature", "level": 2}, {"type": "paragraph", "text": "Detailed description here."}]}
     ]
   },
   "blocks": []
 }
+NOTE: When using twoColumn layout:
+- The "columns" field is REQUIRED (not optional)
+- Must contain EXACTLY 2 column objects (no more, no less)
+- Each column object MUST have "width" (string like "50%") and "blocks" (array)
+- The section.blocks array MUST be empty []
 
 Grid section:
 {
@@ -501,11 +557,21 @@ function buildUserPrompt(args: {
 
 The EmailPlan provides high-level structure and guidance. You must:
 1. Convert plan sections into EmailSpec sections with actual blocks (logo, heading, paragraph, button, bullets, etc.)
-2. Write compelling copy based on the plan's guidance (headline, body, CTAs)
+2. Write HIGH-QUALITY, detailed copy based on the plan's guidance (see content quality requirements below)
 3. Use the plan's subject as meta.subject and create a preheader
 4. Apply brand colors/fonts to theme AND derive full palette with brand-derived tokens
 5. Convert plan's selectedProducts into catalog items and reference them in productCard blocks
-6. **Create 7-12 sections** with varied backgrounds for visual richness
+6. **Create 5-8 sections** with varied backgrounds for visual richness
+
+CONTENT QUALITY REQUIREMENTS - WRITE LIKE A PROFESSIONAL COPYWRITER:
+- **All paragraphs**: 3-4 complete, well-crafted sentences minimum (not fragments)
+- **StorySection**: Use 2-3 rich paragraph blocks telling authentic brand story (3-4 sentences each)
+- **FounderNote**: Include 3-4 personal paragraph blocks with vulnerable, relatable storytelling
+- **Bullet points**: Full sentences explaining specific benefits, not just keywords (e.g., "Reduces inflammation by 40% in clinical trials, helping you recover faster" not just "Reduces inflammation")
+- **Testimonials**: Detailed 3-5 sentence quotes with specific context and results
+- **FAQ answers**: Comprehensive 2-3 sentence responses with actionable details
+- **FeatureGrid**: Each feature needs heading + 2-3 sentence explanatory paragraph
+- **ProductSpotlight bullets**: 4-6 bullets, each 1-2 sentences explaining feature AND customer benefit
 
 BRAND CONTEXT (colors, fonts, products, voice):
 ${JSON.stringify(brandContext, null, 2)}
@@ -561,11 +627,18 @@ REQUIREMENTS (v2):
 - **ALTERNATE section.style.background** - avoid 3+ in a row with same token
 - Use brand-derived palette tokens ONLY (no random hex in section styles)
 - **TEXT CONTRAST IS AUTOMATIC**: Only specify section.style.background. The renderer will automatically calculate contrasting text colors (dark backgrounds → light text, light backgrounds → dark text) to meet WCAG AA standards. DO NOT manually set text colors.
-- Write actual email copy in heading/paragraph/bullets blocks based on plan guidance
+- **HIGH-QUALITY CONTENT - CRITICAL**:
+  - Write professional, detailed copy with complete sentences and specific details
+  - ALL paragraphs: 3-4 sentences minimum with substance and authenticity
+  - StorySection: 2-3 rich paragraphs telling compelling brand narrative (3-4 sentences each)
+  - FounderNote: 3-4 personal paragraphs with vulnerable, relatable storytelling
+  - Bullets: Full sentences with specific benefits, not keywords (1-2 sentences each)
+  - Testimonials: Detailed 3-5 sentence quotes with context and specific results
+  - Consider adding storySection or founderNote for relationship-building campaigns
 - **faqMini sections**: MUST have EXACTLY 3 Q&A pairs. Each answer MUST be 2-3 complete, helpful sentences that provide real value. Questions should address common customer concerns related to the campaign goal. Format: heading (question) → paragraph (answer) → heading → paragraph → heading → paragraph.
 - **One primary CTA**: Use consistent button text (e.g., "${intent.cta?.primary || "Shop Now"}") in hero and ctaBanner sections
 - Prefer: featureGrid > multiple features, ctaBanner > secondaryCTA, testimonialCard > generic testimonial
-- Use bullets > paragraphs for benefits
+- Use detailed bullets with complete sentences explaining benefits
 
 Generate ONLY the EmailSpec JSON.`;
 
@@ -592,7 +665,11 @@ CRITICAL REPAIR INSTRUCTIONS (v2, Attempt ${attempt}/${MAX_ATTEMPTS}):
 - Fix the errors listed above
 - **EMAIL BACKGROUND MUST BE LIGHT**: theme.backgroundColor and palette.bg MUST be light colors (e.g., #FFFFFF, #F9F9F9, #F5F5F5) - NEVER dark/black
 - **USE EXACT BRAND FONTS**: theme.font.heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", theme.font.body = "${brandContext.brand?.fonts?.body || 'Arial'}"
-- If errors mention "layout.variant": Use EXACTLY "single", "twoColumn", or "grid" (case-sensitive)
+- If errors mention "layout.variant" or "layout.columns": 
+  * Ensure variant is EXACTLY "single", "twoColumn", or "grid" (case-sensitive)
+  * For twoColumn: MUST include "columns" field with EXACTLY 2 column objects
+  * Each column object MUST have {"width": "50%", "blocks": [...]}
+  * When using twoColumn, section.blocks MUST be [] (empty)
 - If errors mention BACKGROUND_MONOTONY: alternate section.style.background tokens (base/alt/brandTint)
 - If errors mention TOO_FEW_SECTIONS: expand to 5-8 sections using v2 section types
 - If errors mention MISSING_SECONDARY_CTA: add a ctaBanner section before footer

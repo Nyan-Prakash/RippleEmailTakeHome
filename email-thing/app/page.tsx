@@ -60,6 +60,9 @@ export default function Home() {
   // Quick paste state
   const [quickPasteJson, setQuickPasteJson] = useState<string>("");
   const [quickPasteValid, setQuickPasteValid] = useState<boolean>(false);
+  
+  // Track which render method was used
+  const [renderSource, setRenderSource] = useState<"quickRender" | "workflow" | null>(null);
 
   // Wizard navigation state
   const [activeStep, setActiveStep] = useState<WizardStep>("brand");
@@ -211,6 +214,7 @@ export default function Home() {
     setMjmlErrors([]);
     setRenderError(null);
     setRenderState("idle");
+    setRenderSource(null);
     setActiveStep("brand");
   };
 
@@ -231,6 +235,7 @@ export default function Home() {
     setMjmlErrors([]);
     setRenderError(null);
     setRenderState("idle");
+    setRenderSource(null);
     setActiveStep("intent");
   };
 
@@ -247,6 +252,7 @@ export default function Home() {
     setMjmlErrors([]);
     setRenderError(null);
     setRenderState("idle");
+    setRenderSource(null);
     setActiveStep("plan");
   };
 
@@ -314,6 +320,11 @@ export default function Home() {
 
       setEmailSpec(data.spec);
       setSpecState("success");
+      // Reset render state when new spec is generated
+      setRenderState("idle");
+      setRenderSource(null);
+      setRenderedHtml("");
+      setRenderedMjml("");
     } catch {
       setSpecError({
         code: "INTERNAL",
@@ -333,10 +344,11 @@ export default function Home() {
     setRenderWarnings([]);
     setMjmlErrors([]);
     setRenderError(null);
+    setRenderSource(null);
     setActiveStep("spec");
   };
 
-  const handleRenderPreview = async () => {
+  const handleRenderPreview = async (source: "quickRender" | "workflow" = "quickRender") => {
     if (!emailSpec) {
       setRenderError({
         code: "INVALID_INPUT",
@@ -348,6 +360,7 @@ export default function Home() {
 
     setRenderState("loading");
     setRenderError(null);
+    setRenderSource(source);
 
     try {
       const response = await fetch("/api/email/render", {
@@ -389,10 +402,10 @@ export default function Home() {
         {/* Header */}
         <header className="mb-12 text-center">
           <h1 className="mb-3 text-4xl font-bold tracking-tight text-slate-900">
-            Brand Profile Analyzer
+            Emailify – AI-Powered Email Generator
           </h1>
           <p className="text-lg text-slate-600">
-            Extract brand context from any e-commerce website
+            Turn any brand URL and campaign idea into a production-ready, on-brand marketing email.
           </p>
         </header>
 
@@ -416,6 +429,12 @@ export default function Home() {
                   const value = e.target.value;
                   setQuickPasteJson(value);
                   
+                  // Reset render state when typing new JSON
+                  setRenderState("idle");
+                  setRenderSource(null);
+                  setRenderedHtml("");
+                  setRenderedMjml("");
+                  
                   try {
                     const parsed = JSON.parse(value);
                     setEmailSpec(parsed);
@@ -434,7 +453,7 @@ export default function Home() {
               )}
             </div>
             <button
-              onClick={handleRenderPreview}
+              onClick={() => handleRenderPreview("quickRender")}
               disabled={!emailSpec || renderState === "loading"}
               className="w-full rounded-md bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
             >
@@ -457,6 +476,18 @@ export default function Home() {
             )}
           </div>
         </div>
+
+        {/* Quick Render Preview Section */}
+        {renderState === "success" && renderedHtml && renderSource === "quickRender" && (
+          <div className="mb-8">
+            <EmailPreview
+              html={renderedHtml}
+              mjml={renderedMjml}
+              warnings={renderWarnings}
+              mjmlErrors={mjmlErrors}
+            />
+          </div>
+        )}
 
         {/* Guided Flow */}
         <section className="rounded-xl bg-white/80 shadow-sm ring-1 ring-slate-200 backdrop-blur mb-10">
@@ -963,7 +994,7 @@ export default function Home() {
                           )}
 
                           <button
-                            onClick={handleRenderPreview}
+                            onClick={() => handleRenderPreview("workflow")}
                             disabled={renderState === "loading"}
                             className="w-full rounded-md bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                           >
@@ -975,7 +1006,7 @@ export default function Home() {
                       </div>
                     )}
 
-                    {renderState === "success" && renderedHtml && (
+                    {renderState === "success" && renderedHtml && renderSource === "workflow" && (
                       <EmailPreview
                         html={renderedHtml}
                         mjml={renderedMjml}
@@ -993,15 +1024,13 @@ export default function Home() {
         {/* Info Footer */}
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-6">
           <h2 className="mb-2 text-sm font-semibold text-slate-900">
-            PR8 - EmailSpec Renderer (JSON → MJML → HTML)
+            Emailify – JSON → MJML → HTML
           </h2>
           <p className="text-sm text-slate-600">
-            This interface extracts brand context from e-commerce websites,
-            parses campaign intent from natural language prompts, generates
-            structured email plans, creates canonical EmailSpec JSON, validates
-            and repairs specs, and renders them to responsive email HTML via
-            MJML. Preview the email in an iframe and export HTML/MJML for use in
-            your email service provider.
+            Emailify uses AI to extract brand context from e-commerce websites,
+            interpret your campaign brief, plan the email, generate canonical
+            EmailSpec JSON, and render responsive, email-safe HTML via MJML for
+            preview and export to your email service provider.
           </p>
         </div>
       </div>
