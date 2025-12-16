@@ -25,17 +25,16 @@ Please provide the location of the brotli files.
 **Root Cause:** Vercel uses pnpm by default, which creates a different node_modules structure (`.pnpm` directory) that @sparticuz/chromium cannot navigate to find its binary files
 
 **Fix Applied:**
-- Added `"installCommand": "npm install"` to force npm instead of pnpm
-- Added `"buildCommand": "npm run build"` for consistent builds
-- npm creates a flat node_modules structure that @sparticuz/chromium expects
+- Created `.npmrc` file to configure pnpm to use hoisted node_modules structure
+- Added `node-linker=hoisted` to flatten the directory structure
+- Added `public-hoist-pattern[]=@sparticuz/chromium` to specifically hoist this package
+- This allows @sparticuz/chromium to find its binaries while still using pnpm
 
 ## Updated Configuration Files
 
 ### 1. vercel.json
 ```json
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
@@ -44,18 +43,53 @@ Please provide the location of the brotli files.
   },
   "build": {
     "env": {
-      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
-      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
     }
   }
 }
 ```
 
 **Key Changes:**
-- ✅ Added `installCommand` to force npm instead of pnpm (CRITICAL!)
-- ✅ Added `buildCommand` for consistency
+- ✅ Simplified configuration (let Vercel use pnpm)
 - ✅ Added `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` environment variable
-- ✅ Added `NPM_CONFIG_LEGACY_PEER_DEPS` for dependency handling
+
+### 2. .npmrc
+```
+# Configure pnpm to work with @sparticuz/chromium
+node-linker=hoisted
+public-hoist-pattern[]=@sparticuz/chromium
+shamefully-hoist=true
+```
+
+**Key Changes:**
+- ✅ Forces pnpm to hoist @sparticuz/chromium to root node_modules
+- ✅ Creates flat structure instead of nested .pnpm directory
+
+### 3. next.config.ts (MOST CRITICAL!)
+```typescript
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  serverExternalPackages: ["mjml", "@sparticuz/chromium", "playwright-core"],
+  output: "standalone",
+  
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push('@sparticuz/chromium');
+    }
+    return config;
+  },
+};
+
+export default nextConfig;
+```
+
+**Key Changes:**
+- ✅ `output: "standalone"` - Ensures all dependencies are copied to output (CRITICAL!)
+- ✅ `serverExternalPackages` - Marks packages as external
+- ✅ `webpack externals` - Prevents webpack from bundling chromium binaries
+- ✅ This combination ensures binary files are available at runtime
 
 ### 2. .vercelignore
 ```

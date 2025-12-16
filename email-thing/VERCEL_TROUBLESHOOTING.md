@@ -55,7 +55,27 @@ public-hoist-pattern[]=@sparticuz/chromium
 shamefully-hoist=true
 ```
 
-**Step 2: Ensure `vercel.json` is minimal:**
+**Step 2: Update `next.config.ts` (CRITICAL!):**
+```typescript
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  serverExternalPackages: ["mjml", "@sparticuz/chromium", "playwright-core"],
+  output: "standalone",
+  
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push('@sparticuz/chromium');
+    }
+    return config;
+  },
+};
+
+export default nextConfig;
+```
+
+**Step 3: Ensure `vercel.json` is simple:**
 ```json
 {
   "functions": {
@@ -72,10 +92,11 @@ shamefully-hoist=true
 }
 ```
 
-**What this does:**
-- `node-linker=hoisted` - Creates a flat node_modules structure
-- `public-hoist-pattern[]` - Specifically hoists @sparticuz/chromium
-- `shamefully-hoist=true` - Ensures all dependencies are accessible
+**What these do:**
+- `.npmrc` hoists packages to avoid pnpm's nested structure
+- `next.config.ts` with `output: "standalone"` ensures binary files are copied
+- `webpack externals` prevents bundling the chromium package
+- This combination keeps the binary files accessible at runtime
 
 Then redeploy:
 ```bash

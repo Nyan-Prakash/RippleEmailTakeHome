@@ -224,10 +224,12 @@ All existing tests continue to pass:
 
 ### Created
 - `/vercel.json` - Vercel configuration (with PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD)
+- `/.npmrc` - pnpm configuration to hoist @sparticuz/chromium (CRITICAL!)
 - `/.vercelignore` - Excludes Playwright local browsers from deployment
 - `/VERCEL_DEPLOYMENT.md` - Full deployment guide
 - `/VERCEL_QUICKSTART.md` - Quick reference
 - `/VERCEL_TROUBLESHOOTING.md` - Detailed troubleshooting for common issues
+- `/VERCEL_FIXES.md` - Summary of all fixes applied
 - `/.env.example` - Environment variable template
 - `/lib/scraper/__tests__/browser.test.ts` - Browser compatibility tests
 

@@ -29,12 +29,12 @@ if (isVercelEnvironment()) {
 }
 ```
 
-### Configuration (`vercel.json`)
+### Configuration Files
+
+#### `vercel.json`
 
 ```json
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
@@ -43,22 +43,50 @@ if (isVercelEnvironment()) {
   },
   "build": {
     "env": {
-      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
-      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
     }
   }
 }
 ```
 
-- **installCommand**: Forces npm instead of pnpm (critical for @sparticuz/chromium!)
-- **buildCommand**: Uses npm for consistent builds
 - **Memory**: 1024MB (1GB) - sufficient for Playwright scraping
 - **Max Duration**: 60 seconds - allows time for complex scraping operations
 - **PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD**: Prevents downloading unused Playwright browsers
-- **NPM_CONFIG_LEGACY_PEER_DEPS**: Handles peer dependency warnings
 - **Applies to**: All API routes under `app/api/`
 
-> **Important**: Vercel uses pnpm by default, but @sparticuz/chromium requires npm's node_modules structure to locate its binary files. The `installCommand` ensures npm is used.
+#### `.npmrc` (Required for pnpm)
+
+```
+# Configure pnpm to work with @sparticuz/chromium
+node-linker=hoisted
+public-hoist-pattern[]=@sparticuz/chromium
+shamefully-hoist=true
+```
+
+> **Why**: Vercel uses pnpm by default. This configures pnpm to create a flat node_modules structure.
+
+#### `next.config.ts` (Critical for binary files!)
+
+```typescript
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  serverExternalPackages: ["mjml", "@sparticuz/chromium", "playwright-core"],
+  output: "standalone",
+  
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push('@sparticuz/chromium');
+    }
+    return config;
+  },
+};
+
+export default nextConfig;
+```
+
+> **Critical**: The `output: "standalone"` and webpack externals configuration ensure that @sparticuz/chromium's binary files are included in the deployment and not bundled by webpack. Without this, you'll get "brotli files not found" errors.
 
 ## Dependencies
 
