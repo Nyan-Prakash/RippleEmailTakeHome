@@ -6,7 +6,7 @@
 import { load } from "cheerio";
 import type { BrandContext } from "../types";
 import { normalizeBrandContext } from "../normalize/brandContext";
-import { newPage, closeBrowser } from "./browser";
+import { newPage, closeBrowser, closePage } from "./browser";
 import { loadHtml, withRetries } from "./fetch";
 import { normalizeUrl, assertPublicHostname } from "./url";
 import { ScraperError, isScraperError } from "./errors";
@@ -304,7 +304,7 @@ function createFallbackBrandContext(brandUrl: string): BrandContext {
 /**
  * Export for cleanup in long-running processes
  */
-export { closeBrowser };
+export { closeBrowser, closePage };
 
 /**
  * Re-export error types for consumers

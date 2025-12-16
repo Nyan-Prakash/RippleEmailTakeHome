@@ -23,6 +23,7 @@
     "next": "16.0.10",
     "openai": "^6.10.0",
     "playwright": "^1.57.0",
+    "playwright-core": "^1.57.0",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "zod": "^4.1.13"

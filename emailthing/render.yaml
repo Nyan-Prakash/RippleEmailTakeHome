@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: emailthing
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: ./render-build.sh
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: PNPM_VERSION
+        value: 9
+      - key: NODE_ENV
+        value: production
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /opt/render/project/.cache/ms-playwright
+      - key: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD
+        value: "0"
+      - key: RENDER
+        value: "true"
