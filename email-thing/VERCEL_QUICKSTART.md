@@ -62,12 +62,17 @@ curl -X POST https://your-app.vercel.app/api/brand \
 }
 ```
 
-### Issue: "No browser binary found"
+### Issue: "No browser binary found" or "Executable doesn't exist"
 ```bash
-# Solution: Reinstall serverless packages
+# Solution: Ensure proper configuration and force redeploy
 pnpm install @sparticuz/chromium@latest playwright-core@latest
-vercel --prod
+
+# Verify vercel.json has PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+# Then force redeploy
+vercel --prod --force
 ```
+
+See [VERCEL_TROUBLESHOOTING.md](./VERCEL_TROUBLESHOOTING.md) for detailed debugging steps.
 
 ## 📈 Monitoring
 

@@ -36,7 +36,13 @@ if (isVercelEnvironment()) {
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "node_modules/@sparticuz/chromium/bin/*"
+    }
+  },
+  "build": {
+    "env": {
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
     }
   }
 }
@@ -44,6 +50,8 @@ if (isVercelEnvironment()) {
 
 - **Memory**: 1024MB (1GB) - sufficient for Playwright scraping
 - **Max Duration**: 60 seconds - allows time for complex scraping operations
+- **includeFiles**: Ensures @sparticuz/chromium binary files are bundled (critical!)
+- **PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD**: Prevents downloading unused Playwright browsers
 - **Applies to**: All API routes under `app/api/`
 
 ## Dependencies

@@ -223,9 +223,11 @@ All existing tests continue to pass:
 ## Files Modified
 
 ### Created
-- `/vercel.json` - Vercel configuration
+- `/vercel.json` - Vercel configuration (with PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD)
+- `/.vercelignore` - Excludes Playwright local browsers from deployment
 - `/VERCEL_DEPLOYMENT.md` - Full deployment guide
 - `/VERCEL_QUICKSTART.md` - Quick reference
+- `/VERCEL_TROUBLESHOOTING.md` - Detailed troubleshooting for common issues
 - `/.env.example` - Environment variable template
 - `/lib/scraper/__tests__/browser.test.ts` - Browser compatibility tests
 

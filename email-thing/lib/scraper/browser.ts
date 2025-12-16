@@ -43,7 +43,10 @@ export async function getBrowser(): Promise<Browser> {
       const chromiumBinary = await import("@sparticuz/chromium");
       const { chromium } = await import("playwright-core");
       
+      // Get the executable path - this handles decompression automatically
       const executablePath = await chromiumBinary.default.executablePath();
+      
+      console.log("[Browser] Chromium executable path:", executablePath);
       
       browserInstance = await chromium.launch({
         args: chromiumBinary.default.args,
