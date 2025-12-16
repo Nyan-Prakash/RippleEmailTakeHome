@@ -1,13 +1,16 @@
 #!/bin/bash
 set -e
 
-echo "Installing dependencies..."
-pnpm install
+echo "==> Installing pnpm globally..."
+npm install -g pnpm@9
 
-echo "Installing Playwright browsers..."
-npx playwright install --with-deps chromium
+echo "==> Installing project dependencies..."
+pnpm install --no-frozen-lockfile
 
-echo "Building Next.js application..."
+echo "==> Installing Playwright Chromium with dependencies..."
+pnpm exec playwright install --with-deps chromium
+
+echo "==> Building Next.js application..."
 pnpm build
 
-echo "Build completed successfully!"
+echo "==> Build completed successfully!"

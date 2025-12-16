@@ -4,13 +4,11 @@ services:
     env: node
     region: oregon
     plan: starter
-    buildCommand: ./render-build.sh
+    buildCommand: npm install -g pnpm@9 && pnpm install && pnpm exec playwright install --with-deps chromium && pnpm build
     startCommand: pnpm start
     envVars:
       - key: NODE_VERSION
         value: 20
-      - key: PNPM_VERSION
-        value: 9
       - key: NODE_ENV
         value: production
       - key: PLAYWRIGHT_BROWSERS_PATH
