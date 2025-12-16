@@ -1,4 +1,9 @@
 // Type definitions and interfaces used across the application
-// This will be populated in PR1 with BrandContext, EmailSpec, and other core types
+// Re-export types from schemas for convenience
+
+export type { BrandContext, Brand, Product } from "@/lib/schemas/brand";
+export type { EmailSpec } from "@/lib/schemas/emailSpec";
+export type { CampaignIntent } from "@/lib/schemas/campaign";
+export type { Block } from "@/lib/schemas/blocks";
 
 export type Placeholder = Record<string, never>;

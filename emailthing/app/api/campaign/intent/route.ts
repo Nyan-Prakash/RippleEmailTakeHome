@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { BrandContextSchema } from "../../../../lib/types";
-import { parseCampaignIntent } from "../../../../lib/llm/parseCampaignIntent";
-import { LLMError } from "../../../../lib/llm/errors";
+import { BrandContextSchema } from "@/lib/schemas/brand";
+import { parseCampaignIntent } from "@/lib/llm/parseCampaignIntent";
+import { LLMError } from "@/lib/llm/errors";
 
 /**
  * Request schema for campaign intent endpoint
