@@ -4,20 +4,15 @@ const nextConfig: NextConfig = {
   /* config options here */
   
   // Mark packages as external to prevent bundling
+  // This works automatically with both Turbopack and webpack
   serverExternalPackages: ["mjml", "@sparticuz/chromium", "playwright-core"],
   
   // Use standalone output for Vercel with proper file copying
   output: "standalone",
   
-  // Ensure chromium binary files are included in the build
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Don't bundle @sparticuz/chromium - keep it external so files are accessible
-      config.externals = config.externals || [];
-      config.externals.push('@sparticuz/chromium');
-    }
-    return config;
-  },
+  // Empty turbopack config to silence Next.js 16 warning
+  // serverExternalPackages handles everything we need
+  turbopack: {},
 };
 
 export default nextConfig;
