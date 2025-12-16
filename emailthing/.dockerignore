@@ -1,0 +1,68 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+**/__tests__
+**/__mocks__
+*.test.ts
+*.test.tsx
+*.test.js
+*.test.jsx
+
+# Next.js
+.next/
+out/
+build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local env files
+.env
+.env.local
+.env*.local
+
+# Vercel
+.vercel
+
+# Typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Playwright
+.cache
+playwright/.local-browsers
+
+# Documentation (optional - remove if you want docs in image)
+*.md
+!README.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Render specific
+render.yaml
+render-build.sh
+Dockerfile
+.dockerignore
