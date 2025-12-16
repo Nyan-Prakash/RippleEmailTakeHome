@@ -360,7 +360,7 @@ Error Response (400/500/502):
 
 ## Deployment
 
-This project is designed to be deployed on [Vercel](https://vercel.com).
+This project is optimized for deployment on [Vercel](https://vercel.com) with full Playwright web scraping support.
 
 ### Deploy to Vercel
 
@@ -376,7 +376,20 @@ pnpm add -g vercel
 vercel
 ```
 
-**Note**: Future PRs will add Playwright for web scraping, which requires specific Vercel configuration (edge functions disabled for those routes).
+### Playwright on Vercel
+
+The application includes a production-ready Playwright scraping setup that works seamlessly on Vercel's serverless platform using `@sparticuz/chromium`. The browser module automatically detects the environment and uses the appropriate Chromium binary.
+
+**Key Features:**
+- ✅ Automatic environment detection (local vs. serverless)
+- ✅ Memory-optimized for Vercel's 1GB function limit
+- ✅ Persistent browser instances with automatic cleanup
+- ✅ Resource blocking (fonts, videos) to reduce bandwidth
+- ✅ 60-second timeout configuration for complex scraping
+
+For detailed information on Vercel deployment, performance optimization, troubleshooting, and best practices, see:
+
+📖 **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)**
 
 ## Documentation
 

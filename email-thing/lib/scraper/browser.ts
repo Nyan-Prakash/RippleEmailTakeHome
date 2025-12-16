@@ -1,4 +1,5 @@
-import { chromium, type Browser, type Page } from "playwright";
+import type { Browser, Page } from "playwright-core";
+import { chromium } from "playwright-core";
 
 /**
  * Singleton browser instance
@@ -6,19 +7,69 @@ import { chromium, type Browser, type Page } from "playwright";
 let browserInstance: Browser | null = null;
 
 /**
- * Get or create browser instance
+ * Last browser restart time for periodic cleanup
+ */
+let lastRestartTime: number = Date.now();
+
+/**
+ * Browser restart interval (10 minutes)
+ */
+const BROWSER_RESTART_INTERVAL = 10 * 60 * 1000;
+
+/**
+ * Detect if running in Vercel serverless environment
+ */
+function isVercelEnvironment(): boolean {
+  return process.env.VERCEL === "1" || process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined;
+}
+
+/**
+ * Get or create browser instance with Vercel compatibility
  */
 export async function getBrowser(): Promise<Browser> {
-  if (!browserInstance) {
-    browserInstance = await chromium.launch({
-      headless: true,
-      args: [
-        "--disable-dev-shm-usage",
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-      ],
-    });
+  // Check if browser needs periodic restart (for memory leak prevention)
+  if (browserInstance && Date.now() - lastRestartTime > BROWSER_RESTART_INTERVAL) {
+    console.log("[Browser] Restarting browser for memory cleanup...");
+    await closeBrowser();
   }
+
+  if (!browserInstance) {
+    const isVercel = isVercelEnvironment();
+    
+    if (isVercel) {
+      // Vercel/serverless environment - use @sparticuz/chromium
+      console.log("[Browser] Launching browser in Vercel serverless mode...");
+      
+      // Dynamic import to avoid bundling issues in development
+      const chromiumBinary = await import("@sparticuz/chromium");
+      const executablePath = await chromiumBinary.default.executablePath();
+      
+      browserInstance = await chromium.launch({
+        args: chromiumBinary.default.args,
+        executablePath: executablePath,
+        headless: true,
+      });
+    } else {
+      // Local development - use local Playwright Chromium
+      console.log("[Browser] Launching browser in local development mode...");
+      
+      // Dynamic import of regular playwright for local development
+      const { chromium: localChromium } = await import("playwright");
+      
+      browserInstance = await localChromium.launch({
+        headless: true,
+        args: [
+          "--disable-dev-shm-usage",
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+        ],
+      });
+    }
+    
+    lastRestartTime = Date.now();
+    console.log("[Browser] Browser instance created successfully");
+  }
+  
   return browserInstance;
 }
 
@@ -27,8 +78,27 @@ export async function getBrowser(): Promise<Browser> {
  */
 export async function closeBrowser(): Promise<void> {
   if (browserInstance) {
-    await browserInstance.close();
-    browserInstance = null;
+    try {
+      await browserInstance.close();
+      console.log("[Browser] Browser instance closed successfully");
+    } catch (error) {
+      console.error("[Browser] Error closing browser:", error);
+    } finally {
+      browserInstance = null;
+      lastRestartTime = Date.now();
+    }
+  }
+}
+
+/**
+ * Close a page instance to free up memory
+ * In serverless environments, close pages after use instead of the entire browser
+ */
+export async function closePage(page: Page): Promise<void> {
+  try {
+    await page.close();
+  } catch (error) {
+    console.error("[Browser] Error closing page:", error);
   }
 }
 
@@ -54,14 +124,18 @@ export async function newPage(options?: {
   page.setDefaultTimeout(options?.timeout ?? 30000);
   page.setDefaultNavigationTimeout(options?.timeout ?? 30000);
 
-  // Block heavy resources to speed up loading (but keep images for product scraping)
-  // Only block video/audio media
+  // Block heavy resources to speed up loading and reduce memory usage
+  // In serverless environments, this is critical for staying within memory limits
   await page.route("**/*", (route) => {
     const resourceType = route.request().resourceType();
     const url = route.request().url();
 
-    // Block video and audio media, but ALLOW images
+    // Block video, audio, and optionally fonts for performance
+    // Keep images as they're needed for product scraping and brand extraction
     if (resourceType === "media" && (url.includes(".mp4") || url.includes(".webm") || url.includes(".mp3") || url.includes(".wav"))) {
+      route.abort();
+    } else if (isVercelEnvironment() && resourceType === "font") {
+      // In serverless, also block fonts to reduce memory/bandwidth
       route.abort();
     } else {
       route.continue();
