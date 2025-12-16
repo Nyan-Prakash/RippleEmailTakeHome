@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 /**
  * PR3: Brand Ingestion Endpoint
  * POST /api/brand/ingest
