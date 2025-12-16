@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import type { Page } from "./browser";
 import { ScraperError } from "./errors";
 
 /**
@@ -10,7 +10,7 @@ export interface LoadHtmlResult {
 }
 
 /**
- * Load HTML from a URL using Playwright
+ * Load HTML from a URL using Puppeteer
  */
 export async function loadHtml(
   page: Page,
@@ -44,7 +44,7 @@ export async function loadHtml(
     // Optional: wait a bit for network idle (capped at 2 seconds)
     if (options?.waitForNetworkIdle) {
       try {
-        await page.waitForLoadState("networkidle", { timeout: 2000 });
+        await page.waitForNetworkIdle({ timeout: 2000 });
       } catch {
         // Ignore timeout, 2s is just a nice-to-have
       }
@@ -106,7 +106,7 @@ async function waitForDynamicContent(page: Page): Promise<void> {
     }
 
     // Give a small additional delay for JavaScript frameworks to finish rendering
-    await page.waitForTimeout(500);
+    await new Promise(resolve => setTimeout(resolve, 500));
   } catch {
     // Ignore errors
   }
@@ -147,7 +147,7 @@ async function triggerLazyLoad(page: Page): Promise<void> {
     });
 
     // Wait a bit for images to start loading
-    await page.waitForTimeout(300);
+    await new Promise(resolve => setTimeout(resolve, 300));
   } catch {
     // Ignore errors
   }

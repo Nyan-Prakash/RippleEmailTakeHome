@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import type { Page } from "../browser";
 import type { BrandFont } from "@/lib/schemas/brand";
 
 /**

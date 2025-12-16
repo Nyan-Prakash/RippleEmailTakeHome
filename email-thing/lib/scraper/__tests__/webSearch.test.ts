@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { Page } from "playwright";
+import type { Page } from "../browser";
 import { enhanceProductsWithWebSearch } from "../webSearch";
 import type { ProductCandidate } from "../extract/products";
 

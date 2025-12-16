@@ -3,7 +3,7 @@
  * Searches the web to find images and prices for products that are missing them
  */
 
-import type { Page } from "playwright";
+import type { Page } from "./browser";
 import { load } from "cheerio";
 import { extractPrice, extractBestProductImage } from "./extract/products";
 import type { ProductCandidate } from "./extract/products";

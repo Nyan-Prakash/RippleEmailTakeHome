@@ -1,9 +1,13 @@
-import type { Browser, Page } from "playwright-core";
+import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from "puppeteer-core";
+
+// Re-export types for compatibility
+export type Browser = PuppeteerBrowser;
+export type Page = PuppeteerPage;
 
 /**
  * Singleton browser instance
  */
-let browserInstance: Browser | null = null;
+let browserInstance: PuppeteerBrowser | null = null;
 
 /**
  * Last browser restart time for periodic cleanup
@@ -25,7 +29,7 @@ function isVercelEnvironment(): boolean {
 /**
  * Get or create browser instance with Vercel compatibility
  */
-export async function getBrowser(): Promise<Browser> {
+export async function getBrowser(): Promise<PuppeteerBrowser> {
   // Check if browser needs periodic restart (for memory leak prevention)
   if (browserInstance && Date.now() - lastRestartTime > BROWSER_RESTART_INTERVAL) {
     console.log("[Browser] Restarting browser for memory cleanup...");
@@ -36,39 +40,69 @@ export async function getBrowser(): Promise<Browser> {
     const isVercel = isVercelEnvironment();
     
     if (isVercel) {
-      // Vercel/serverless environment - use @sparticuz/chromium
+      // Vercel/serverless environment - use @sparticuz/chromium-min with puppeteer-core
       console.log("[Browser] Launching browser in Vercel serverless mode...");
       
-      // Import chromium binary and playwright-core
-      const chromiumBinary = await import("@sparticuz/chromium");
-      const { chromium } = await import("playwright-core");
-      
       try {
+        const chromium = await import("@sparticuz/chromium-min");
+        const puppeteer = await import("puppeteer-core");
+        
         // Get the executable path - this handles decompression automatically
         // The package will decompress to /tmp which is writable in Lambda/Vercel
-        const executablePath = await chromiumBinary.default.executablePath();
+        const executablePath = await chromium.default.executablePath();
         
-        console.log("[Browser] Chromium executable path:", executablePath);
+        console.log("[Browser] Chrome executable path:", executablePath);
         
-        browserInstance = await chromium.launch({
-          args: chromiumBinary.default.args,
+        browserInstance = await puppeteer.default.launch({
+          args: chromium.default.args,
           executablePath: executablePath,
           headless: true,
-        });
+        }) as PuppeteerBrowser;
       } catch (error) {
-        console.error("[Browser] Error with @sparticuz/chromium:", error);
+        console.error("[Browser] Error with @sparticuz/chromium-min:", error);
         console.error("[Browser] Error message:", (error as Error).message);
-        console.error("[Browser] This may be due to missing binary files in the deployment bundle");
+        console.error("[Browser] Error stack:", (error as Error).stack);
         throw error;
       }
     } else {
-      // Local development - use local Playwright Chromium
+      // Local development - use puppeteer-core with system Chrome
       console.log("[Browser] Launching browser in local development mode...");
       
-      // Import regular playwright for local development
-      const { chromium: localChromium } = await import("playwright");
+      // Import puppeteer-core for local development
+      const puppeteer = await import("puppeteer-core");
       
-      browserInstance = await localChromium.launch({
+      // Try to find Chrome in common locations
+      const chromePaths = [
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // macOS
+        '/usr/bin/google-chrome', // Linux
+        '/usr/bin/chromium-browser', // Linux Chromium
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', // Windows
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe', // Windows 32-bit
+      ];
+      
+      let executablePath: string | undefined;
+      for (const path of chromePaths) {
+        try {
+          const fs = await import('fs');
+          if (fs.existsSync(path)) {
+            executablePath = path;
+            console.log("[Browser] Found Chrome at:", executablePath);
+            break;
+          }
+        } catch {
+          // Continue to next path
+        }
+      }
+      
+      if (!executablePath) {
+        throw new Error(
+          "Chrome not found. Please install Google Chrome or set CHROME_PATH environment variable.\n" +
+          "Visit: https://www.google.com/chrome/"
+        );
+      }
+      
+      browserInstance = await puppeteer.default.launch({
+        executablePath,
         headless: true,
         args: [
           "--disable-dev-shm-usage",
@@ -106,7 +140,7 @@ export async function closeBrowser(): Promise<void> {
  * Close a page instance to free up memory
  * In serverless environments, close pages after use instead of the entire browser
  */
-export async function closePage(page: Page): Promise<void> {
+export async function closePage(page: PuppeteerPage): Promise<void> {
   try {
     await page.close();
   } catch (error) {
@@ -120,16 +154,20 @@ export async function closePage(page: Page): Promise<void> {
 export async function newPage(options?: {
   timeout?: number;
   userAgent?: string;
-}): Promise<Page> {
+}): Promise<PuppeteerPage> {
   const browser = await getBrowser();
-  const page = await browser.newPage({
-    userAgent:
-      options?.userAgent ||
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    viewport: {
-      width: 1920,
-      height: 1080,
-    },
+  const page = await browser.newPage();
+
+  // Set user agent
+  await page.setUserAgent(
+    options?.userAgent ||
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  );
+
+  // Set viewport
+  await page.setViewport({
+    width: 1920,
+    height: 1080,
   });
 
   // Set default timeouts
@@ -138,25 +176,25 @@ export async function newPage(options?: {
 
   // Block heavy resources to speed up loading and reduce memory usage
   // In serverless environments, this is critical for staying within memory limits
-  await page.route("**/*", (route) => {
-    const resourceType = route.request().resourceType();
-    const url = route.request().url();
+  await page.setRequestInterception(true);
+  page.on("request", (request) => {
+    const resourceType = request.resourceType();
+    const url = request.url();
 
     // Block video, audio, and optionally fonts for performance
     // Keep images as they're needed for product scraping and brand extraction
     if (resourceType === "media" && (url.includes(".mp4") || url.includes(".webm") || url.includes(".mp3") || url.includes(".wav"))) {
-      route.abort();
+      request.abort();
     } else if (isVercelEnvironment() && resourceType === "font") {
       // In serverless, also block fonts to reduce memory/bandwidth
-      route.abort();
+      request.abort();
     } else {
-      route.continue();
+      request.continue();
     }
   });
 
-  // Enable JavaScript execution
-  await page.addInitScript(() => {
-    // Prevent detection as headless browser
+  // Prevent detection as headless browser
+  await page.evaluateOnNewDocument(() => {
     Object.defineProperty(navigator, 'webdriver', {
       get: () => false,
     });

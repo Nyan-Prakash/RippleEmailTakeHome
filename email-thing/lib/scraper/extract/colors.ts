@@ -1,5 +1,5 @@
 import type { CheerioAPI } from "cheerio";
-import type { Page } from "playwright";
+import type { Page } from "../browser";
 
 /**
  * Extracted color palette
