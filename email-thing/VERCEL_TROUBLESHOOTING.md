@@ -43,13 +43,21 @@ The @sparticuz/chromium binary files aren't being included in the Vercel deploym
 
 **The issue is that Vercel uses pnpm by default, which creates a different node_modules structure that @sparticuz/chromium can't navigate.**
 
-**Fix: Force Vercel to use npm instead of pnpm**
+**Fix: Configure pnpm to hoist @sparticuz/chromium**
 
-Update your `vercel.json` to explicitly use npm:
+The issue is that pnpm's default structure hides packages in a `.pnpm` directory. We need to hoist @sparticuz/chromium to the root.
+
+**Step 1: Create/update `.npmrc` file:**
+```
+# Configure pnpm to work with @sparticuz/chromium
+node-linker=hoisted
+public-hoist-pattern[]=@sparticuz/chromium
+shamefully-hoist=true
+```
+
+**Step 2: Ensure `vercel.json` is minimal:**
 ```json
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
@@ -58,17 +66,16 @@ Update your `vercel.json` to explicitly use npm:
   },
   "build": {
     "env": {
-      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
-      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
     }
   }
 }
 ```
 
-**Key Changes:**
-- `"installCommand": "npm install"` - Forces npm instead of pnpm
-- `"buildCommand": "npm run build"` - Uses npm for build
-- Removed `includeFiles` (not needed with npm)
+**What this does:**
+- `node-linker=hoisted` - Creates a flat node_modules structure
+- `public-hoist-pattern[]` - Specifically hoists @sparticuz/chromium
+- `shamefully-hoist=true` - Ensures all dependencies are accessible
 
 Then redeploy:
 ```bash
@@ -94,25 +101,27 @@ Check your `package.json` includes both packages:
 ```
 
 #### Step 2: Update vercel.json
-Ensure your `vercel.json` tells Vercel to skip downloading Playwright browsers AND includes the Chromium binary files:
+Ensure your `vercel.json` forces npm installation (not pnpm):
 ```json
 {
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
-      "maxDuration": 60,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/*"
+      "maxDuration": 60
     }
   },
   "build": {
     "env": {
-      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
+      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
     }
   }
 }
 ```
 
-**Critical**: The `includeFiles` property ensures that @sparticuz/chromium's binary files are bundled with your serverless function.
+**Critical**: The `installCommand` forces npm instead of pnpm. This is essential because @sparticuz/chromium requires npm's flat node_modules structure to locate its binary files. pnpm's `.pnpm` directory structure breaks the package's file resolution.
 
 #### Step 3: Create .vercelignore
 Add a `.vercelignore` file to exclude local browser binaries:

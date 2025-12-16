@@ -1,6 +1,4 @@
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
@@ -9,8 +7,7 @@
   },
   "build": {
     "env": {
-      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
-      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
     }
   }
 }
