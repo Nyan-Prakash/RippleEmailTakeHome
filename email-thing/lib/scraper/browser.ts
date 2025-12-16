@@ -44,22 +44,30 @@ export async function getBrowser(): Promise<PuppeteerBrowser> {
       console.log("[Browser] Launching browser in Vercel serverless mode...");
       
       try {
-        const chromium = await import("@sparticuz/chromium-min");
+        const chromium = await import("@sparticuz/chromium");
         const puppeteer = await import("puppeteer-core");
         
-        // Get the executable path - this handles decompression automatically
-        // The package will decompress to /tmp which is writable in Lambda/Vercel
+        // Set required environment variables for serverless
+        process.env.HOME = '/tmp';
+        process.env.FONTCONFIG_PATH = '/tmp';
+        
+        console.log("[Browser] Getting Chromium executable path...");
+        
+        // Get the executable path - this will extract chromium to /tmp if needed
         const executablePath = await chromium.default.executablePath();
         
         console.log("[Browser] Chrome executable path:", executablePath);
+        console.log("[Browser] Chromium args:", chromium.default.args);
         
         browserInstance = await puppeteer.default.launch({
           args: chromium.default.args,
           executablePath: executablePath,
           headless: true,
         }) as PuppeteerBrowser;
+        
+        console.log("[Browser] Browser launched successfully in serverless mode");
       } catch (error) {
-        console.error("[Browser] Error with @sparticuz/chromium-min:", error);
+        console.error("[Browser] Error with @sparticuz/chromium:", error);
         console.error("[Browser] Error message:", (error as Error).message);
         console.error("[Browser] Error stack:", (error as Error).stack);
         throw error;
