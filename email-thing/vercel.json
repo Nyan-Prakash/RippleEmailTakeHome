@@ -1,14 +1,16 @@
 {
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
-      "maxDuration": 60,
-      "includeFiles": "node_modules/**/@sparticuz/chromium/bin/*"
+      "maxDuration": 60
     }
   },
   "build": {
     "env": {
-      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
+      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
     }
   }
 }

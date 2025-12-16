@@ -43,16 +43,24 @@ export async function getBrowser(): Promise<Browser> {
       const chromiumBinary = await import("@sparticuz/chromium");
       const { chromium } = await import("playwright-core");
       
-      // Get the executable path - this handles decompression automatically
-      const executablePath = await chromiumBinary.default.executablePath();
-      
-      console.log("[Browser] Chromium executable path:", executablePath);
-      
-      browserInstance = await chromium.launch({
-        args: chromiumBinary.default.args,
-        executablePath: executablePath,
-        headless: true,
-      });
+      try {
+        // Get the executable path - this handles decompression automatically
+        // The package will decompress to /tmp which is writable in Lambda/Vercel
+        const executablePath = await chromiumBinary.default.executablePath();
+        
+        console.log("[Browser] Chromium executable path:", executablePath);
+        
+        browserInstance = await chromium.launch({
+          args: chromiumBinary.default.args,
+          executablePath: executablePath,
+          headless: true,
+        });
+      } catch (error) {
+        console.error("[Browser] Error with @sparticuz/chromium:", error);
+        console.error("[Browser] Error message:", (error as Error).message);
+        console.error("[Browser] This may be due to missing binary files in the deployment bundle");
+        throw error;
+      }
     } else {
       // Local development - use local Playwright Chromium
       console.log("[Browser] Launching browser in local development mode...");

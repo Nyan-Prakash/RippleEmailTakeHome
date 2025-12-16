@@ -22,35 +22,40 @@ The input directory "/var/task/email-thing/node_modules/.pnpm/@sparticuz+chromiu
 Please provide the location of the brotli files.
 ```
 
-**Root Cause:** Vercel's bundler was excluding @sparticuz/chromium's binary files
+**Root Cause:** Vercel uses pnpm by default, which creates a different node_modules structure (`.pnpm` directory) that @sparticuz/chromium cannot navigate to find its binary files
 
 **Fix Applied:**
-- Added `includeFiles: "node_modules/@sparticuz/chromium/bin/*"` to vercel.json
-- This ensures the brotli-compressed Chromium binary is included in the deployment bundle
+- Added `"installCommand": "npm install"` to force npm instead of pnpm
+- Added `"buildCommand": "npm run build"` for consistent builds
+- npm creates a flat node_modules structure that @sparticuz/chromium expects
 
 ## Updated Configuration Files
 
 ### 1. vercel.json
 ```json
 {
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
-      "maxDuration": 60,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/*"
+      "maxDuration": 60
     }
   },
   "build": {
     "env": {
-      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
+      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
     }
   }
 }
 ```
 
 **Key Changes:**
-- ✅ Added `includeFiles` to bundle @sparticuz/chromium binaries
+- ✅ Added `installCommand` to force npm instead of pnpm (CRITICAL!)
+- ✅ Added `buildCommand` for consistency
 - ✅ Added `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` environment variable
+- ✅ Added `NPM_CONFIG_LEGACY_PEER_DEPS` for dependency handling
 
 ### 2. .vercelignore
 ```

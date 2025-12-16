@@ -33,26 +33,32 @@ if (isVercelEnvironment()) {
 
 ```json
 {
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
-      "maxDuration": 60,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/*"
+      "maxDuration": 60
     }
   },
   "build": {
     "env": {
-      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
+      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
     }
   }
 }
 ```
 
+- **installCommand**: Forces npm instead of pnpm (critical for @sparticuz/chromium!)
+- **buildCommand**: Uses npm for consistent builds
 - **Memory**: 1024MB (1GB) - sufficient for Playwright scraping
 - **Max Duration**: 60 seconds - allows time for complex scraping operations
-- **includeFiles**: Ensures @sparticuz/chromium binary files are bundled (critical!)
 - **PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD**: Prevents downloading unused Playwright browsers
+- **NPM_CONFIG_LEGACY_PEER_DEPS**: Handles peer dependency warnings
 - **Applies to**: All API routes under `app/api/`
+
+> **Important**: Vercel uses pnpm by default, but @sparticuz/chromium requires npm's node_modules structure to locate its binary files. The `installCommand` ensures npm is used.
 
 ## Dependencies
 

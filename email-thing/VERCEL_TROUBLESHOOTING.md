@@ -40,18 +40,35 @@ The @sparticuz/chromium binary files aren't being included in the Vercel deploym
 3. The package structure doesn't match Vercel's expectations
 
 #### Solution
-Add `includeFiles` to your `vercel.json`:
+
+**The issue is that Vercel uses pnpm by default, which creates a different node_modules structure that @sparticuz/chromium can't navigate.**
+
+**Fix: Force Vercel to use npm instead of pnpm**
+
+Update your `vercel.json` to explicitly use npm:
 ```json
 {
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
-      "maxDuration": 60,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/*"
+      "maxDuration": 60
+    }
+  },
+  "build": {
+    "env": {
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
+      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
     }
   }
 }
 ```
+
+**Key Changes:**
+- `"installCommand": "npm install"` - Forces npm instead of pnpm
+- `"buildCommand": "npm run build"` - Uses npm for build
+- Removed `includeFiles` (not needed with npm)
 
 Then redeploy:
 ```bash
