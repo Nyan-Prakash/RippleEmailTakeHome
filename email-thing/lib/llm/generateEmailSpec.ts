@@ -431,7 +431,7 @@ BLOCK TYPES:
   { "type": "socialIcons", "links": [{"network": "facebook"|"twitter"|"instagram"|..., "url": "..."}, ...] }
   { "type": "divider" }
   { "type": "spacer", "size": number }
-  { "type": "smallPrint", "text": "string (must include {{unsubscribe}} in footer)" }
+  { "type": "smallPrint", "text": "string (must include <a href='https://www.example.com/unsubscribe'>unsubscribe</a> link in footer)" }
 
 CRITICAL RULES (v2):
 1. **EMAIL BACKGROUND MUST BE LIGHT**: theme.backgroundColor and palette.bg MUST ALWAYS be light colors (e.g., #FFFFFF, #F9F9F9, #F5F5F5). NEVER use dark colors like black (#000000) or dark grays for the main email background. Individual sections can have dark backgrounds, but the overall email background must be light.
@@ -449,7 +449,7 @@ CRITICAL RULES (v2):
    - Use testimonialCard for structured testimonials
    - Use metricStrip for stats/urgency
 9. First section must be type="header" or "navHeader" or "announcementBar", last section must be type="footer"
-10. Footer MUST contain a smallPrint block with {{unsubscribe}} token
+10. Footer MUST contain a smallPrint block with an unsubscribe link: <a href='https://www.example.com/unsubscribe'>unsubscribe</a>
 11. **One primary CTA**: Use consistent button text for primary CTA (repeat in hero and ctaBanner)
 12. All section IDs must be unique
 13. **HIGH-QUALITY CONTENT REQUIREMENTS**:
@@ -717,7 +717,7 @@ CRITICAL REPAIR INSTRUCTIONS (v2, Attempt ${attempt}/${MAX_ATTEMPTS}):
 - Ensure last section is "footer"
 - Include at least one button with valid text and href
 - **One primary CTA**: Use consistent button text "${intent.cta?.primary || "Shop Now"}" in hero and ctaBanner
-- Footer must have {{unsubscribe}} token in smallPrint block
+- Footer must have an unsubscribe link in smallPrint block: <a href='https://www.example.com/unsubscribe'>unsubscribe</a>
 - All section IDs must be unique
 - All productCard blocks must reference catalog items
 - **v2 Background tokens**: "base", "alt", "brandTint", "brandSolid", "surface", "muted", "primarySoft", "accentSoft"
