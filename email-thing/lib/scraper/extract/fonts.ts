@@ -161,6 +161,24 @@ function cleanFontFamily(fontFamily: string): string | null {
 }
 
 /**
+ * Common Google Fonts that should have sourceUrls
+ */
+const GOOGLE_FONTS = new Set([
+  'inter', 'roboto', 'open sans', 'lato', 'montserrat', 'poppins',
+  'raleway', 'source sans pro', 'work sans', 'nunito', 'pt sans',
+  'rubik', 'dm sans', 'ubuntu', 'playfair display', 'merriweather',
+  'oswald', 'mukta', 'manrope', 'space grotesk', 'plus jakarta sans',
+]);
+
+/**
+ * Generate Google Fonts URL for a given font name
+ */
+function generateGoogleFontsUrl(fontName: string): string {
+  const encodedName = fontName.replace(/\s+/g, '+');
+  return `https://fonts.googleapis.com/css2?family=${encodedName}:wght@400;600;700&display=swap`;
+}
+
+/**
  * Build a BrandFont object with sourceUrl if available
  */
 function buildFontWithSource(
@@ -177,6 +195,11 @@ function buildFontWithSource(
   const genericSource = fontSources['_stylesheet'] || fontSources['_import'];
   if (genericSource) {
     return { name: fontName, sourceUrl: genericSource };
+  }
+
+  // Check if it's a known Google Font and generate URL
+  if (GOOGLE_FONTS.has(fontName.toLowerCase())) {
+    return { name: fontName, sourceUrl: generateGoogleFontsUrl(fontName) };
   }
 
   // No source found, return just the name

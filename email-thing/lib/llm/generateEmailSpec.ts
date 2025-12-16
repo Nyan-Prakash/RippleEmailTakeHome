@@ -278,6 +278,33 @@ export async function generateEmailSpec(args: {
 }
 
 /**
+ * Helper to extract font information from BrandContext
+ * Handles both string and BrandFont object formats
+ */
+function getFontInfo(font: string | { name: string; sourceUrl?: string } | undefined, defaultFont: string = 'Arial'): {
+  name: string;
+  sourceUrl?: string;
+  displayString: string;
+} {
+  if (!font) {
+    return { name: defaultFont, displayString: defaultFont };
+  }
+  
+  if (typeof font === 'string') {
+    return { name: font, displayString: font };
+  }
+  
+  // BrandFont object
+  return {
+    name: font.name,
+    sourceUrl: font.sourceUrl,
+    displayString: font.sourceUrl 
+      ? `${font.name} (with web font from ${font.sourceUrl})`
+      : font.name
+  };
+}
+
+/**
  * Get temperature for attempt number
  */
 function getTemperatureForAttempt(attempt: number): number {
@@ -314,7 +341,10 @@ REQUIRED EMAILSPEC STRUCTURE:
     "textColor": "hex color",
     "mutedTextColor": "hex color",
     "primaryColor": "hex color",
-    "font": { "heading": "string (use brand.fonts.heading)", "body": "string (use brand.fonts.body)" },
+    "font": {
+      "heading": "string OR { name: string, sourceUrl: string } (use EXACT format from brand.fonts.heading)",
+      "body": "string OR { name: string, sourceUrl: string } (use EXACT format from brand.fonts.body)"
+    },
     "button": { "radius": number, "style": "solid" | "outline" | "soft", "paddingY": number, "paddingX": number },
     "palette": {
       "primary": "hex", "ink": "hex", "bg": "hex (MUST be light - NEVER dark/black)", "surface": "hex (MUST be light)",
@@ -401,7 +431,7 @@ BLOCK TYPES:
   { "type": "socialIcons", "links": [{"network": "facebook"|"twitter"|"instagram"|..., "url": "..."}, ...] }
   { "type": "divider" }
   { "type": "spacer", "size": number }
-  { "type": "smallPrint", "text": "string (must include {{unsubscribe}} in footer)" }
+  { "type": "smallPrint", "text": "string (must include <a href='https://www.example.com/unsubscribe'>unsubscribe</a> link in footer)" }
 
 CRITICAL RULES (v2):
 1. **EMAIL BACKGROUND MUST BE LIGHT**: theme.backgroundColor and palette.bg MUST ALWAYS be light colors (e.g., #FFFFFF, #F9F9F9, #F5F5F5). NEVER use dark colors like black (#000000) or dark grays for the main email background. Individual sections can have dark backgrounds, but the overall email background must be light.
@@ -410,7 +440,7 @@ CRITICAL RULES (v2):
 4. **v2 Background tokens** (preferred): "base", "alt", "brandTint", "brandSolid", "surface", "muted", "primarySoft", "accentSoft"
    Legacy tokens still work: "bg" (=base), "primary", "accent", "transparent", "brand", "image"
 5. DO NOT invent hex colors - use brand tokens from palette
-6. **USE BRAND FONTS**: theme.font.heading MUST be the exact value from brandContext.brand.fonts.heading, and theme.font.body MUST be the exact value from brandContext.brand.fonts.body
+6. **USE BRAND FONTS**: theme.font.heading and theme.font.body MUST use the EXACT format from brandContext.brand.fonts (either string OR object with name + sourceUrl). If the brand font has a sourceUrl, you MUST include it as an object: { "name": "FontName", "sourceUrl": "https://..." }. If no sourceUrl, use the string format: "FontName".
 7. **CONTRAST IS AUTOMATIC**: The rendering system automatically ensures proper contrast. Dark backgrounds (brandSolid, primary, accent) get light text, light backgrounds (base, alt, surface) get dark text. You only specify section backgrounds - text colors are calculated automatically for accessibility (WCAG AA 4.5:1 for text, 3:1 for buttons).
 8. **Prefer modern section types**:
    - Use featureGrid over multiple feature sections
@@ -419,7 +449,7 @@ CRITICAL RULES (v2):
    - Use testimonialCard for structured testimonials
    - Use metricStrip for stats/urgency
 9. First section must be type="header" or "navHeader" or "announcementBar", last section must be type="footer"
-10. Footer MUST contain a smallPrint block with {{unsubscribe}} token
+10. Footer MUST contain a smallPrint block with an unsubscribe link: <a href='https://www.example.com/unsubscribe'>unsubscribe</a>
 11. **One primary CTA**: Use consistent button text for primary CTA (repeat in hero and ctaBanner)
 12. All section IDs must be unique
 13. **HIGH-QUALITY CONTENT REQUIREMENTS**:
@@ -548,6 +578,10 @@ function buildUserPrompt(args: {
   previousErrors: string[];
 }): string {
   const { brandContext, intent, plan, attempt, previousSpec, previousErrors } = args;
+  
+  // Extract font information
+  const headingFont = getFontInfo(brandContext.brand?.fonts?.heading);
+  const bodyFont = getFontInfo(brandContext.brand?.fonts?.body);
 
   let prompt = "";
 
@@ -592,8 +626,8 @@ TRANSFORM INTO EMAILSPEC WITH:
     mutedTextColor: blend of bg + text,
     primaryColor: brand primary,
     font: {
-      heading: "${brandContext.brand?.fonts?.heading || 'Arial'}",
-      body: "${brandContext.brand?.fonts?.body || 'Arial'}"
+      heading: ${headingFont.sourceUrl ? `{ "name": "${headingFont.name}", "sourceUrl": "${headingFont.sourceUrl}" }` : `"${headingFont.name}"`},
+      body: ${bodyFont.sourceUrl ? `{ "name": "${bodyFont.name}", "sourceUrl": "${bodyFont.sourceUrl}" }` : `"${bodyFont.name}"`}
     },
     palette: {
       primary: brand primary,
@@ -621,7 +655,10 @@ TRANSFORM INTO EMAILSPEC WITH:
 REQUIREMENTS (v2):
 - **EMAIL BACKGROUND MUST BE LIGHT**: theme.backgroundColor and palette.bg MUST be light colors (#FFFFFF, #F9F9F9, #F5F5F5) - NEVER dark/black
 - **5-8 sections** for focused, engaging emails (not overwhelming)
-- **USE EXACT BRAND FONTS**: theme.font.heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", theme.font.body = "${brandContext.brand?.fonts?.body || 'Arial'}"
+- **USE EXACT BRAND FONTS**: 
+  * Heading font: ${headingFont.displayString}
+  * Body font: ${bodyFont.displayString}
+  * Use the EXACT format shown in the theme.font example above (with sourceUrl if provided)
 - First section: "announcementBar", "navHeader", or "header"
 - Last section: type="footer" with smallPrint block containing "{{unsubscribe}}"
 - **ALTERNATE section.style.background** - avoid 3+ in a row with same token
@@ -664,7 +701,10 @@ ${JSON.stringify(plan, null, 2)}
 CRITICAL REPAIR INSTRUCTIONS (v2, Attempt ${attempt}/${MAX_ATTEMPTS}):
 - Fix the errors listed above
 - **EMAIL BACKGROUND MUST BE LIGHT**: theme.backgroundColor and palette.bg MUST be light colors (e.g., #FFFFFF, #F9F9F9, #F5F5F5) - NEVER dark/black
-- **USE EXACT BRAND FONTS**: theme.font.heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", theme.font.body = "${brandContext.brand?.fonts?.body || 'Arial'}"
+- **USE EXACT BRAND FONTS**: 
+  * Heading: ${headingFont.sourceUrl ? `{ "name": "${headingFont.name}", "sourceUrl": "${headingFont.sourceUrl}" }` : `"${headingFont.name}"`}
+  * Body: ${bodyFont.sourceUrl ? `{ "name": "${bodyFont.name}", "sourceUrl": "${bodyFont.sourceUrl}" }` : `"${bodyFont.name}"`}
+  * CRITICAL: If brand has sourceUrl, you MUST include it in the font object format, not just the string name
 - If errors mention "layout.variant" or "layout.columns": 
   * Ensure variant is EXACTLY "single", "twoColumn", or "grid" (case-sensitive)
   * For twoColumn: MUST include "columns" field with EXACTLY 2 column objects
@@ -677,7 +717,7 @@ CRITICAL REPAIR INSTRUCTIONS (v2, Attempt ${attempt}/${MAX_ATTEMPTS}):
 - Ensure last section is "footer"
 - Include at least one button with valid text and href
 - **One primary CTA**: Use consistent button text "${intent.cta?.primary || "Shop Now"}" in hero and ctaBanner
-- Footer must have {{unsubscribe}} token in smallPrint block
+- Footer must have an unsubscribe link in smallPrint block: <a href='https://www.example.com/unsubscribe'>unsubscribe</a>
 - All section IDs must be unique
 - All productCard blocks must reference catalog items
 - **v2 Background tokens**: "base", "alt", "brandTint", "brandSolid", "surface", "muted", "primarySoft", "accentSoft"
@@ -686,7 +726,10 @@ ${intent.cta?.primary ? `- Primary button text must be: "${intent.cta.primary}"`
 
 ${attempt === 3 ? `FINAL ATTEMPT (v2) - Be extra careful:
 - **CRITICAL**: theme.backgroundColor and palette.bg MUST be light colors (#FFFFFF, #F9F9F9, #F5F5F5) - NEVER dark/black
-- Use EXACT brand fonts: heading = "${brandContext.brand?.fonts?.heading || 'Arial'}", body = "${brandContext.brand?.fonts?.body || 'Arial'}"
+- Use EXACT brand fonts with proper format:
+  * Heading: ${headingFont.sourceUrl ? `{ "name": "${headingFont.name}", "sourceUrl": "${headingFont.sourceUrl}" }` : `"${headingFont.name}"`}
+  * Body: ${bodyFont.sourceUrl ? `{ "name": "${bodyFont.name}", "sourceUrl": "${bodyFont.sourceUrl}" }` : `"${bodyFont.name}"`}
+  * MUST use object format { name, sourceUrl } if sourceUrl is available
 - Double-check every product reference exists in catalog
 - Verify first section type is valid header type (header/navHeader/announcementBar)
 - Verify footer is sections[last]
