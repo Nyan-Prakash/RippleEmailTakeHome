@@ -1,5 +1,5 @@
 {
-  "name": "emailify",
+  "name": "email-thing",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,40 +9,24 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest",
-    "test:watch": "vitest --watch",
-    "test:ui": "vitest --ui",
-    "scraper:dev": "tsx lib/scraper/dev.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "cheerio": "^1.1.2",
-    "mjml": "^4.18.0",
-    "mjml-browser": "^4.18.0",
-    "nanoid": "^5.1.6",
     "next": "16.0.10",
-    "openai": "^6.10.0",
-    "playwright": "^1.57.0",
     "react": "19.2.1",
-    "react-dom": "19.2.1",
-    "zod": "^4.1.13"
+    "react-dom": "19.2.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/mjml": "^4.7.4",
-    "@types/mjml-browser": "^4.15.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitest/ui": "^4.0.15",
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.7.4",
     "tailwindcss": "^4",
-    "tsx": "^4.21.0",
-    "typescript": "^5",
-    "vitest": "^4.0.15"
+    "typescript": "^5"
   }
 }
