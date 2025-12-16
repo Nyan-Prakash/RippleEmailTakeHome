@@ -322,15 +322,19 @@ export function validateEmailSpecStructure(args: {
     }
   });
 
-  // 7. Footer must have unsubscribe token
+  // 7. Footer must have unsubscribe link or token
   const footerSection = spec.sections.find(s => s.type === "footer");
   if (footerSection) {
     let hasUnsubscribe = false;
 
     const checkUnsubscribe = (blocks: any[]) => {
       blocks.forEach(block => {
-        if (block.type === "smallPrint" && block.text.includes("{{unsubscribe}}")) {
-          hasUnsubscribe = true;
+        if (block.type === "smallPrint") {
+          // Accept either {{unsubscribe}} token or HTML link format
+          if (block.text.includes("{{unsubscribe}}") || 
+              (block.text.includes("unsubscribe") && block.text.includes("href="))) {
+            hasUnsubscribe = true;
+          }
         }
       });
     };
@@ -344,7 +348,7 @@ export function validateEmailSpecStructure(args: {
       issues.push({
         code: "FOOTER_MISSING_UNSUBSCRIBE",
         severity: "error",
-        message: "Footer must include a smallPrint block with {{unsubscribe}} token",
+        message: "Footer must include a smallPrint block with unsubscribe link",
         path: `sections[${spec.sections.indexOf(footerSection)}]`,
       });
     }
