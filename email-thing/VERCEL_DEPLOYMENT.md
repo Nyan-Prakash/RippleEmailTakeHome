@@ -189,13 +189,30 @@ If scraping operations timeout:
 
 ## Common Issues & Solutions
 
-### Issue: "No browser binary found"
+### Issue: "No browser binary found" or "Executable doesn't exist"
 
-**Cause**: `@sparticuz/chromium` not installed or incompatible version
+**Cause**: Vercel is trying to use local Playwright instead of `@sparticuz/chromium`
 
 **Solution**:
+1. Ensure `@sparticuz/chromium` and `playwright-core` are installed:
 ```bash
 pnpm install @sparticuz/chromium@latest playwright-core@latest
+```
+
+2. Verify `vercel.json` includes the build environment variable:
+```json
+{
+  "build": {
+    "env": {
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+    }
+  }
+}
+```
+
+3. Redeploy:
+```bash
+vercel --prod
 ```
 
 ### Issue: "Memory limit exceeded"

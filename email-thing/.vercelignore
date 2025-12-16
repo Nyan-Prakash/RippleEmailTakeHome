@@ -1,0 +1,12 @@
+# Ignore Playwright local browser binaries
+node_modules/playwright/.local-browsers
+.cache/ms-playwright
+
+# Ignore test files
+**/__tests__/**
+*.test.ts
+*.test.tsx
+
+# Ignore development files
+*.log
+.DS_Store

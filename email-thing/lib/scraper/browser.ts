@@ -1,5 +1,4 @@
 import type { Browser, Page } from "playwright-core";
-import { chromium } from "playwright-core";
 
 /**
  * Singleton browser instance
@@ -40,8 +39,10 @@ export async function getBrowser(): Promise<Browser> {
       // Vercel/serverless environment - use @sparticuz/chromium
       console.log("[Browser] Launching browser in Vercel serverless mode...");
       
-      // Dynamic import to avoid bundling issues in development
+      // Import chromium binary and playwright-core
       const chromiumBinary = await import("@sparticuz/chromium");
+      const { chromium } = await import("playwright-core");
+      
       const executablePath = await chromiumBinary.default.executablePath();
       
       browserInstance = await chromium.launch({
@@ -53,7 +54,7 @@ export async function getBrowser(): Promise<Browser> {
       // Local development - use local Playwright Chromium
       console.log("[Browser] Launching browser in local development mode...");
       
-      // Dynamic import of regular playwright for local development
+      // Import regular playwright for local development
       const { chromium: localChromium } = await import("playwright");
       
       browserInstance = await localChromium.launch({
